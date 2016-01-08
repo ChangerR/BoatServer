@@ -1,0 +1,24 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Executables
+*.exe
+*.out
+*.app
+*.swp
+Debug/*
+*.sdf
+*.suo
+server_test/*
+win32/win32/Debug/*
+win32/Debug/*
+tags
+test
+slserver
