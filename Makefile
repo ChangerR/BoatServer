@@ -1,7 +1,7 @@
 CFLAG = -c -O0 -g
 LKFLAG =
 
-OBJS = serial-linux.o ServerConfig.o Command.o main.o
+OBJS = serial-linux.o ServerConfig.o Command.o Hardware.o main.o
 
 LKLIBA =
 
