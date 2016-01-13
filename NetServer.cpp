@@ -1,6 +1,19 @@
 #include "NetServer.h"
+#include "Pilot.h"
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #define NETSERVER_BUFFER_LEN 4094
+
+int NetServer::Client::id_count = 1000;
+
+NetServer::Client::Client(struct sockaddr_in& in) {
+    _uid = id_count++;
+    _time = 60;
+    _clientaddr = in;
+}
 
 NetServer::NetServer(int port,Pilot* pilot) {
     _port = port;
@@ -33,15 +46,88 @@ bool NetServer::init() {
 
         _running = true;
         ret = true;
+        _timer.reset();
     }while(0);
     return ret;
 }
 
-void NetServer::handleServerMessage() {
+void NetServer::closeServer() {
+    if(_running) {
+        _running = false;
+        for(std::map<unsigned long,Client*>::iterator it = _clients.begin(); it != _clients.end();) {
+            delete it->second;
+            _clients.erase(it++);
+        }
+        close(_serverSocket);
+    }
+}
+
+NetServer::Client* NetServer::findClient(struct sockaddr_in& c) {
+    std::map<unsigned long,Client*>::iterator it = _clients.find(c.sin_addr.s_addr);
+
+    if(it == _clients.end()) {
+        Client* nClient = new Client(c);
+        _clients.insert(std::make_pair(c.sin_addr.s_addr,nClient));
+        return nClient;
+    }
+
+    return it->second;
+}
+
+bool NetServer::handleServerMessage() {
     int recv_len = 0;
+    socklen_t addr_len = sizeof(struct sockaddr_in);
     struct sockaddr_in clientaddr;
     fd_set fds;
-    struct timeval tv;
-    if(!running)return;
+    struct timeval tv = {0,0};
 
+    if(!_running)return _running;
+
+    FD_ZERO(&fds);
+    FD_SET(_serverSocket,&fds);
+
+    if(select(_serverSocket + 1,&fds,NULL,NULL,&tv) > 0) {
+
+        recv_len = recvfrom(_serverSocket,_buffer,NETSERVER_BUFFER_LEN,MSG_DONTWAIT,
+            (struct sockaddr*)&clientaddr,&addr_len);
+
+        if(recv_len > 4 && _buffer[1] == ':' && _buffer[2] == ':' && _buffer[3] == ':') {
+            _buffer[recv_len] = 0;
+            switch (_buffer[0]) {
+                case 2:
+                    {
+                        Client* c = findClient(clientaddr);
+                        printf("Server Recv Cmd:%s\n",_buffer + 4);
+                        _pilot->pushControl(c->_uid,_buffer + 4);
+                        c->_time = 60;
+                    }
+                    break;
+                case 1:
+                    findClient(clientaddr)->_time = 60;
+                    break;
+                default:
+                    printf("We do not support this cmd:%s\n",_buffer);
+                    break;
+            }
+        } else {
+            printf("Recv UNKOWN Message Format\n");
+        }
+    }
+
+    if(_timer.elapsed(10000)) {
+        for(std::map<unsigned long,Client*>::iterator it = _clients.begin(); it != _clients.end();) {
+            it->second->_time -= 10;
+
+            if(it->second->_time <= 0) {
+                Client* c = it->second;
+                _pilot->cancelControl(c->_uid);
+                printf("Client End Control:UID=%d\n",c->_uid);
+                delete c;
+                _clients.erase(it++);
+            } else {
+                ++it;
+            }
+        }
+    }
+    return _running;
 }

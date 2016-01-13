@@ -10,5 +10,5 @@ public:
 
     void pushControl(int id,const char* cmd);
     void cancelControl(int id);
-}
+};
 #endif

@@ -1,12 +1,8 @@
-#include "serial.h"
 #include <stdio.h>
+#include "NetServer.h"
+#include "Pilot.h"
 #include <signal.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include "util.h"
-#include <string.h>
-#include "slconfig.h"
-#include "ServerConfig.h"
 
 bool g_running = true;
 
@@ -20,6 +16,16 @@ int main(int args,char** argv) {
         printf("could not register signal handler\n");
         exit(1);
     }
-    
+    Pilot* pilot = new Pilot(NULL);
+    NetServer* server = new NetServer(5000,pilot);
+
+    if(server->init()) {
+        while(g_running) {
+            server->handleServerMessage();
+        }
+    }
+    server->closeServer();
+    delete server;
+    delete pilot;
     return 0;
 }
