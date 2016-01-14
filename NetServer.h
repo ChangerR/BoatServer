@@ -25,6 +25,7 @@ public:
     };
 private:
     Client* findClient(struct sockaddr_in& c);
+    Client* findClinet(int uid);
     int _port;
     Pilot* _pilot;
     int _serverSocket;

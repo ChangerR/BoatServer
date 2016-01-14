@@ -74,6 +74,18 @@ NetServer::Client* NetServer::findClient(struct sockaddr_in& c) {
     return it->second;
 }
 
+NetServer::Client* NetServer::findClinet(int uid) {
+    Client* c= NULL;
+
+    for(std::map<unsigned long,Client*>::iterator it = _clients.begin(); it != _clients.end();++it) {
+        if(it->second->_uid == uid) {
+            c = it->second;
+            break;
+        }
+    }
+    return c;
+}
+
 bool NetServer::handleServerMessage() {
     int recv_len = 0;
     socklen_t addr_len = sizeof(struct sockaddr_in);
@@ -91,10 +103,11 @@ bool NetServer::handleServerMessage() {
         recv_len = recvfrom(_serverSocket,_buffer,NETSERVER_BUFFER_LEN,MSG_DONTWAIT,
             (struct sockaddr*)&clientaddr,&addr_len);
 
-        if(recv_len > 4 && _buffer[1] == ':' && _buffer[2] == ':' && _buffer[3] == ':') {
+        if(recv_len > 3 && _buffer[1] == ':' && _buffer[2] == ':' && _buffer[3] == ':') {
             _buffer[recv_len] = 0;
+            printf("We accept char:%c\n",_buffer[0]);
             switch (_buffer[0]) {
-                case 2:
+                case '2':
                     {
                         Client* c = findClient(clientaddr);
                         printf("Server Recv Cmd:%s\n",_buffer + 4);
@@ -102,8 +115,12 @@ bool NetServer::handleServerMessage() {
                         c->_time = 60;
                     }
                     break;
-                case 1:
-                    findClient(clientaddr)->_time = 60;
+                case '1':
+                    {
+                        Client* c = findClient(clientaddr);
+                        c->_time = 60;
+                        printf("Reset client uid=%d\n",c->_uid);
+                    }
                     break;
                 default:
                     printf("We do not support this cmd:%s\n",_buffer);
@@ -117,7 +134,7 @@ bool NetServer::handleServerMessage() {
     if(_timer.elapsed(10000)) {
         for(std::map<unsigned long,Client*>::iterator it = _clients.begin(); it != _clients.end();) {
             it->second->_time -= 10;
-
+            printf("Client Uid=%d Time=%d\n",it->second->_uid,it->second->_time);
             if(it->second->_time <= 0) {
                 Client* c = it->second;
                 _pilot->cancelControl(c->_uid);
