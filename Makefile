@@ -1,4 +1,4 @@
-CFLAG = -c -O0 -g
+CFLAG = -c -O0 -g  -I json
 LKFLAG =
 
 OBJS = serial-linux.o ServerConfig.o Command.o Hardware.o Timer.o NetServer.o Pilot.o
@@ -15,6 +15,9 @@ TestSerial:TestSerial.o $(OBJS)
 
 TestNetServer:TestNetServer.o $(OBJS)
 	g++ -o $@ $(OBJS) TestNetServer.o $(LKFLAG) $(LKLIBA)
+
+TestHardware:TestHardware.o $(OBJS)
+	g++ -o $@ $(OBJS) TestHardware.o $(LKFLAG) $(LKLIBA)
 
 %.o:%.c
 	gcc $(CFLAG) -o $@ $<

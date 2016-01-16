@@ -11,6 +11,9 @@ public:
     bool elapsed(unsigned long milliseconds);
 
     void reset();
+
+    unsigned long timegap();
+    
 private:
     unsigned long _start;
     unsigned long _last;

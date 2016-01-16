@@ -35,8 +35,11 @@ class BoatClient:
 
     def yaw(self,direction):
         msg = "2:::{\"name\":\"yaw\",\"args\":[" + str(direction * self.power) + "]}"
+        self.queue.put(msg)
 
-
+    def state(self,s):
+        msg = "2:::{\"name\":\"ControlState\",\"args\":[" + str(s) + "]}"
+        self.queue.put(msg)
 
 
 class PaintWindow(wx.Window):
@@ -58,6 +61,12 @@ class PaintWindow(wx.Window):
                     self.client.thro(-1)
                 elif event.GetKeyCode() == 68:
                     self.client.yaw(1)
+                elif event.GetKeyCode() == 49:
+                    self.client.state(0)
+                elif event.GetKeyCode() == 50:
+                    self.client.state(1)
+                elif event.GetKeyCode() == 51:
+                    self.client.state(2)
 
         def onKeyUp(self,event):
             if self.client != None:

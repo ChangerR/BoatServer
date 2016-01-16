@@ -27,3 +27,7 @@ void Timer::reset() {
     _start = now();
     _last = _start;
 }
+
+unsigned long Timer::timegap() {
+    return now() - _last;
+}

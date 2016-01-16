@@ -16,7 +16,7 @@ public:
 		node* next;
 		T element;
 	};
-	
+
 	list():m_size(0){
 		head = new node();
 		tail = new node();
@@ -39,12 +39,16 @@ public:
 	void clear() {
 		node* p = head->next;
 		while (p != tail)
-		{	
+		{
 			head->next = head->next->next;
 			delete p;
 			p = head->next;
 			--m_size;
 		}
+		head->prev = NULL;
+		tail->next = NULL;
+		head->next = tail;
+		tail->prev = head;
 	}
 
 	bool empty() {
@@ -53,7 +57,7 @@ public:
 
 	void push_back(const T& element) {
 		node *p_node = new node(element);
-		
+
 		tail->prev->next = p_node;
 		p_node->prev = tail->prev;
 		tail->prev = p_node;
@@ -75,7 +79,7 @@ public:
 		if (i > m_size)
 			return;
 		node *p_node = new node(element);
-		
+
 		node* p  = head;
 		for (int index = 0; index < i; index++)
 			p = p->next;

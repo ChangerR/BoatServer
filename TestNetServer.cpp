@@ -3,6 +3,7 @@
 #include "Pilot.h"
 #include <signal.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 bool g_running = true;
 
@@ -22,7 +23,9 @@ int main(int args,char** argv) {
     if(server->init()) {
         while(g_running) {
             server->handleServerMessage();
+            pilot->handleControl();
         }
+        usleep(1);
     }
     server->closeServer();
     delete server;

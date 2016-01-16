@@ -92,6 +92,7 @@ bool NetServer::handleServerMessage() {
     struct sockaddr_in clientaddr;
     fd_set fds;
     struct timeval tv = {0,0};
+    int id = 0;
 
     if(!_running)return _running;
 
@@ -105,7 +106,6 @@ bool NetServer::handleServerMessage() {
 
         if(recv_len > 3 && _buffer[1] == ':' && _buffer[2] == ':' && _buffer[3] == ':') {
             _buffer[recv_len] = 0;
-            printf("We accept char:%c\n",_buffer[0]);
             switch (_buffer[0]) {
                 case '2':
                     {
@@ -134,7 +134,6 @@ bool NetServer::handleServerMessage() {
     if(_timer.elapsed(10000)) {
         for(std::map<unsigned long,Client*>::iterator it = _clients.begin(); it != _clients.end();) {
             it->second->_time -= 10;
-            printf("Client Uid=%d Time=%d\n",it->second->_uid,it->second->_time);
             if(it->second->_time <= 0) {
                 Client* c = it->second;
                 _pilot->cancelControl(c->_uid);
@@ -146,5 +145,15 @@ bool NetServer::handleServerMessage() {
             }
         }
     }
+
+    if(_pilot->needBroadcast(&id,_buffer,&recv_len)){
+        for(std::map<unsigned long,Client*>::iterator it = _clients.begin(); it != _clients.end();++it) {
+            if(id == -1||id == it->second->_uid) {
+                sendto(_serverSocket,_buffer,recv_len,0,(struct sockaddr*)&(it->second->_clientaddr),sizeof(struct sockaddr_in));
+            }
+            if(id == it->second->_uid)break;
+        }
+    }
+
     return _running;
 }
