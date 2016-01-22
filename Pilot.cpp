@@ -2,12 +2,19 @@
 #include "json/writer.h"
 #include "json/stringbuffer.h"
 
-Pilot::Pilot(Hardware* h) {
+Pilot::Pilot(Hardware* h,const char* script) {
     _hardware = h;
     _PilotState = PILOT_MANUAL;
     pthread_mutex_init(&_RecvLock,NULL);
     pthread_mutex_init(&_SendLock,NULL);
     _status = new HWStatus::Status;
+    _thruster1id = _thruster2id = 0;
+    _thruster1 = _thruster2 = 0;
+    _motor1id = _motor2id = _motor3id = _motor4id = 0;
+    _motor1 = _motor2 = _motor3 = _motor4 = 0;
+    _led1id = _led2id = 0;
+    _led1 = _led2 = 0;
+    _autoController = new AutoController;
 }
 
 Pilot::~Pilot() {
@@ -99,6 +106,10 @@ void Pilot::handleControl() {
                     int s = pArgs[rapidjson::SizeType(0)].GetInt();
                     _PilotState = s;
                     resetControl();
+                    if(_PilotState == PILOT_AUTOCONTROL&&_autoScript.length() != 0) {
+                        _autoController.close();
+                        _autoController.init(_autoScript.c_str(),this);
+                    }
                 }
                 ret = false;
             }
@@ -112,12 +123,16 @@ void Pilot::handleControl() {
         delete command;
     }
 
-    if(_sendStatusTimer.elapsed(1000)) {
-        sendStatus();
-    }
-
     if(_StatusUpdate.elapsed(500)){
         hardware->requestStatus();
+    }
+
+    if(_hardware->getStatus()->isAllUpdated() == true) {
+        _hardware->getStatus()->copyStatus(_status);
+    }
+
+    if(_sendStatusTimer.elapsed(1000)) {
+        sendStatus();
     }
 
     switch (_PilotState) {
@@ -194,11 +209,21 @@ void Pilot::halfManualControl(rapidjson::Document* doc,int uid) {
 }
 
 void Pilot::autoControl() {
-    printf("AutoControl\n");
+    if(_status->isUpdated == true) {
+        _autoController->runController();
+        _status->isUpdated == false;
+    }
 }
 
 void Pilot::resetControl() {
-    printf("Cancel Control\n");
+    sendThruster(0,1,0);
+    sendThruster(0,2,0);
+    sendThruster(0,3,0);
+    sendThruster(0,4,0);
+    sendThruster(0,5,0);
+    sendThruster(0,6,0);
+    sendLED(0,1,0);
+    sendLED(0,2,0);
 }
 
 void Pilot::pushBroadcast(int id,const char* cmd) {

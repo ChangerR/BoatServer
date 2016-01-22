@@ -86,6 +86,15 @@ NetServer::Client* NetServer::findClinet(int uid) {
     return c;
 }
 
+void NetServer::sendMessageToClient(int id,const char* buf,int len) {
+    for(std::map<unsigned long,Client*>::iterator it = _clients.begin(); it != _clients.end();++it) {
+        if(id == -1||id == it->second->_uid) {
+            sendto(_serverSocket,buf,len,0,(struct sockaddr*)&(it->second->_clientaddr),sizeof(struct sockaddr_in));
+        }
+        if(id == it->second->_uid)break;
+    }
+}
+
 bool NetServer::handleServerMessage() {
     int recv_len = 0;
     socklen_t addr_len = sizeof(struct sockaddr_in);
@@ -147,12 +156,7 @@ bool NetServer::handleServerMessage() {
     }
 
     if(_pilot->needBroadcast(&id,_buffer,&recv_len)){
-        for(std::map<unsigned long,Client*>::iterator it = _clients.begin(); it != _clients.end();++it) {
-            if(id == -1||id == it->second->_uid) {
-                sendto(_serverSocket,_buffer,recv_len,0,(struct sockaddr*)&(it->second->_clientaddr),sizeof(struct sockaddr_in));
-            }
-            if(id == it->second->_uid)break;
-        }
+        sendMessageToClient(id,_buffer,recv_len);
     }
 
     return _running;

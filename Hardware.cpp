@@ -65,6 +65,7 @@ void HWStatus::copyStatus(Status* s) {
     s->longitude = longitude;s->latitude = latitude;
     s->height = height;s->speed = speed;
     s->time = time;
+    s->isUpdated = true;
 }
 
 class HWCommand {
@@ -251,13 +252,15 @@ void Hardware::requestStatus() {
     pthread_mutex_lock(&_lock);
     _sendList.push_back(cmd);
     pthread_mutex_unlock(&_lock);
-    _status->reset();
+
+    if(_status->isAllUpdated())
+        _status->reset();
 }
 
 void Hardware::led(int id,int data) {
     char buf[256] = {0};
 
-    sprintf(buf,"LED%d(%d)\n",id,data);
+    sprintf(buf,"Led%d(%d)\n",id,data);
     HWCommand* cmd = new HWCommand(2,buf);
     pthread_mutex_lock(&_lock);
     _sendList.push_back(cmd);

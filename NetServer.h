@@ -15,6 +15,8 @@ public:
 
     void closeServer();
 
+    void sendMessageToClient(int id,const char* buf,int len);
+
     class Client {
     public:
         Client(struct sockaddr_in& in);
@@ -26,6 +28,7 @@ public:
 private:
     Client* findClient(struct sockaddr_in& c);
     Client* findClinet(int uid);
+    void sendMessageToClient(int uid,const char* buf,int len);
     int _port;
     Pilot* _pilot;
     int _serverSocket;

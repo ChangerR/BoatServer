@@ -55,6 +55,7 @@ public:
         float height,speed,time;
         unsigned long timegap;
         Timer timer;
+        bool isUpdated;
     };
 
     void copyStatus(Status* s);
