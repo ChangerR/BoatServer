@@ -1,32 +1,20 @@
 #include "MD5.h"
 #include <stdio.h>
 
-unsigned char g_buffer[4096] = {0};
 int main(int args,char** argv) {
     if(args != 2) {
         printf("error we need filename\n");
         return 1;
     }
     const char* filename = argv[1];
-    MD5 md5;
-    FILE* f = fopen(filename,"rb");
+    unsigned char out[16] = {0};
 
-    if(f == NULL) {
-        return 1;
-    }
-    fseek(f,0,SEEK_END);
-    int filelen = ftell(f);
-    fseek(f,0,SEEK_SET);
-    md5.init();
-    do{
-        int readlen = filelen > 4096 ? 4096 : filelen;
-        fread(g_buffer,readlen,1,f);
-        md5.update(g_buffer,readlen);
-        filelen -= readlen;
-    }while (filelen > 0);
+    MD5::md5sum(filename,out);
 
-    fclose(f);
-    md5.final();
-    md5.printMD5();
+    printf("md5 %X%X%X%X%X%X%X%X%X%X%X%X%X%X%X%X\n",out[0],out[1],out[2],out[3]
+													,out[4],out[5],out[6],out[7]
+													,out[8],out[9],out[10],out[11]
+												,out[12],out[13],out[14],out[15]);
+                                                
     return 0;
 }

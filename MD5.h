@@ -25,9 +25,10 @@ public:
     void printMD5();
 
     const unsigned char* getMD5() {
-        return _hash;
+        return (unsigned char*)_hash;
     }
 
+    static bool md5sum(const char* filename,unsigned char* out);
 private:
     static unsigned char _md5_zero_message_hash[MD5_DIGEST_SIZE];
     unsigned int _hash[MD5_HASH_WORDS];

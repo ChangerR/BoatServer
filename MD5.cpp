@@ -166,3 +166,29 @@ void MD5::printMD5() {
 													,out[8],out[9],out[10],out[11]
 												,out[12],out[13],out[14],out[15]);
 }
+
+bool MD5::md5sum(const char* filename,unsigned char* out) {
+	unsigned char* l_buffer = new unsigned char[4096];
+	MD5 md5;
+    FILE* f = fopen(filename,"rb");
+
+    if(f == NULL) {
+        return false;
+    }
+
+    fseek(f,0,SEEK_END);
+    int filelen = ftell(f);
+    fseek(f,0,SEEK_SET);
+    md5.init();
+    do{
+        int readlen = filelen > 4096 ? 4096 : filelen;
+        fread(l_buffer,readlen,1,f);
+        md5.update(l_buffer,readlen);
+        filelen -= readlen;
+    }while (filelen > 0);
+	md5.printMD5();
+    fclose(f);
+	delete[] l_buffer;
+	memcpy(out,md5._hash,16);
+	return true;
+}
