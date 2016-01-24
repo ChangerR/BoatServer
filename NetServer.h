@@ -3,11 +3,13 @@
 #include "Timer.h"
 #include <netinet/in.h>
 #include <map>
+#include "UDPFileTransfer.h"
+
 class Pilot;
 
 class NetServer{
 public:
-    NetServer(int port,Pilot* pilot);
+    NetServer(int port,Pilot* pilot,const char* filepath);
     virtual ~NetServer();
 
     bool init();
@@ -25,6 +27,8 @@ public:
         sockaddr_in _clientaddr;
         static int id_count;
     };
+	
+	static void NetFileRecv(const char* filename,void* user);
 private:
     Client* findClient(struct sockaddr_in& c);
     Client* findClinet(int uid);
@@ -37,5 +41,6 @@ private:
     char* _buffer;
     std::map<unsigned long,Client*> _clients;
     Timer _timer;
+	UDPFileTransfer* _fileTransfer;
 };
 #endif

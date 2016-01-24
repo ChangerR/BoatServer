@@ -25,6 +25,7 @@ public:
 
     void handleControl();
 
+	void setAutoControlScript(const char* script);
 private:
     void manualControl(rapidjson::Document*,int);
     void halfManualControl(rapidjson::Document*,int);
@@ -95,6 +96,8 @@ private:
         }
     }
 
+	void cancelIdControl(int id);
+	
     struct _Cmd {
         int id;
         std::string cmd;

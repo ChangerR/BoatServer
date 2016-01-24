@@ -76,6 +76,7 @@ public:
 #define HARDWARE_ERROR      5
 
 class HWCommand;
+
 class Hardware {
 public:
     Hardware(const char* serial1,const char* serial2);

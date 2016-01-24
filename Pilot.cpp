@@ -77,6 +77,10 @@ bool Pilot::needBroadcast(int* id,char* buf,int* len) {
         return false;
 }
 
+void Pilot::setAutoControlScript(const char* script) {
+	_autoScript = script;
+}
+
 void Pilot::handleControl() {
 
     _Cmd* command = NULL;
@@ -180,7 +184,8 @@ void Pilot::sendStatus() {
     _l.AddMember("speed",rapidjson::Value().SetDouble(_status->speed),d.GetAllocator());
     _l.AddMember("time",rapidjson::Value().SetDouble(_status->time),d.GetAllocator());
     _l.AddMember("updateTime",rapidjson::Value().SetUint64(_status->timegap + _status->timer.timegap()),d.GetAllocator());
-
+	_l.AddMember("controlState",rapidjson::Value().SetInt(_PilotState),d.GetAllocator());
+	
     args.PushBack(_l,d.GetAllocator());
     d.AddMember("args",args,d.GetAllocator());
 
@@ -194,12 +199,17 @@ void Pilot::manualControl(rapidjson::Document* doc,int uid) {
 
     if(!strcmp("cancelControl",(*doc)["name"].GetString())) {
         printf("Cancel uid=%d Control\n",uid);
+		cancelIdControl(uid);
     } else if(pArgs[rapidjson::SizeType(0)].IsInt()) {
         int s = pArgs[rapidjson::SizeType(0)].GetInt();
         if(!strcmp("thro",(*doc)["name"].GetString())) {
             printf("thro control power=%d\n",s);
+			sendThruster(uid,1,s);
+			sendThruster(uid,2,s);
         } else if(!strcmp("yaw",(*doc)["name"].GetString())) {
             printf("yaw control power=%d\n",s);
+			sendThruster(uid,1,s);
+			sendThruster(uid,2,-s);
         }
     }
 }
@@ -235,4 +245,20 @@ void Pilot::pushBroadcast(int id,const char* cmd) {
     pthread_mutex_lock(&_SendLock);
     _SendList.push_back(command);
     pthread_mutex_unlock(&_SendLock);
+}
+
+void Pilot::cancelIdControl(int id) {
+
+	if(id == _thruster1id)
+		sendThruster(0,1,0);
+	if(id == _thruster2id)
+		sendThruster(0,2,0);
+	if(id == _motor1id)
+		sendThruster(0,3,0);
+	if(id == _motor2id)
+		sendThruster(0,4,0);
+	if(id == _motor3id)
+		sendThruster(0,5,0);
+	if(id == _motor4id)
+		sendThruster(0,6,0);
 }

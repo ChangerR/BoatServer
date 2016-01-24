@@ -179,6 +179,7 @@ bool MD5::md5sum(const char* filename,unsigned char* out) {
     fseek(f,0,SEEK_END);
     int filelen = ftell(f);
     fseek(f,0,SEEK_SET);
+	
     md5.init();
     do{
         int readlen = filelen > 4096 ? 4096 : filelen;
@@ -186,7 +187,8 @@ bool MD5::md5sum(const char* filename,unsigned char* out) {
         md5.update(l_buffer,readlen);
         filelen -= readlen;
     }while (filelen > 0);
-	md5.printMD5();
+	md5.final();
+	
     fclose(f);
 	delete[] l_buffer;
 	memcpy(out,md5._hash,16);

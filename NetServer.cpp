@@ -15,16 +15,20 @@ NetServer::Client::Client(struct sockaddr_in& in) {
     _clientaddr = in;
 }
 
-NetServer::NetServer(int port,Pilot* pilot) {
+NetServer::NetServer(int port,Pilot* pilot,const char* filepath) {
     _port = port;
     _pilot = pilot;
     _serverSocket = -1;
     _running = false;
     _buffer = new char[NETSERVER_BUFFER_LEN];
+	_fileTransfer = new UDPFileTransfer(filepath);
 }
 
 NetServer::~NetServer() {
-    delete[] _buffer;
+	if(_buffer)
+		delete[] _buffer;
+	if(_fileTransfer)
+		delete _fileTransfer;
 }
 
 bool NetServer::init() {
@@ -44,6 +48,8 @@ bool NetServer::init() {
             break;
         }
 
+		_fileTransfer->setFileRecvCallback(NetServer::NetFileRecv,this);
+		
         _running = true;
         ret = true;
         _timer.reset();
@@ -120,7 +126,8 @@ bool NetServer::handleServerMessage() {
                     {
                         Client* c = findClient(clientaddr);
                         printf("Server Recv Cmd:%s\n",_buffer + 4);
-                        _pilot->pushControl(c->_uid,_buffer + 4);
+						if(_pilot)
+							_pilot->pushControl(c->_uid,_buffer + 4);
                         c->_time = 60;
                     }
                     break;
@@ -131,6 +138,12 @@ bool NetServer::handleServerMessage() {
                         printf("Reset client uid=%d\n",c->_uid);
                     }
                     break;
+				case 'f':
+					{
+						Client* c = findClient(clientaddr);
+                        c->_time = 60;
+						_fileTransfer->pushPacket(c->_uid,_buffer + 4,recv_len - 4);
+					}
                 default:
                     printf("We do not support this cmd:%s\n",_buffer);
                     break;
@@ -145,7 +158,8 @@ bool NetServer::handleServerMessage() {
             it->second->_time -= 10;
             if(it->second->_time <= 0) {
                 Client* c = it->second;
-                _pilot->cancelControl(c->_uid);
+				if(_pilot != NULL)
+					_pilot->cancelControl(c->_uid);
                 printf("Client End Control:UID=%d\n",c->_uid);
                 delete c;
                 _clients.erase(it++);
@@ -155,9 +169,17 @@ bool NetServer::handleServerMessage() {
         }
     }
 
-    if(_pilot->needBroadcast(&id,_buffer,&recv_len)){
+    if(_pilot != NULL&&_pilot->needBroadcast(&id,_buffer,&recv_len)){
         sendMessageToClient(id,_buffer,recv_len);
     }
-
+	_fileTransfer->processTasks(this);
+	
     return _running;
+}
+
+void NetServer::NetFileRecv(const char* filename,void* user) {
+	NetServer* server = (NetServer*)user;
+	if(server->pilot != NULL) {
+		server->pilot->setAutoControlScript(filename);
+	}
 }
