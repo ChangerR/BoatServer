@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "json/writer.h"
 #include "json/stringbuffer.h"
+#include "Pilot.h"
 
 struct luaL_reg AutoController::_controller[] = {
     {"status",AutoController::getStatus},

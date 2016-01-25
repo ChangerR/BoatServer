@@ -49,7 +49,7 @@ bool NetServer::init() {
         }
 
 		_fileTransfer->setFileRecvCallback(NetServer::NetFileRecv,this);
-		
+
         _running = true;
         ret = true;
         _timer.reset();
@@ -144,6 +144,7 @@ bool NetServer::handleServerMessage() {
                         c->_time = 60;
 						_fileTransfer->pushPacket(c->_uid,_buffer + 4,recv_len - 4);
 					}
+                    break;
                 default:
                     printf("We do not support this cmd:%s\n",_buffer);
                     break;
@@ -173,13 +174,14 @@ bool NetServer::handleServerMessage() {
         sendMessageToClient(id,_buffer,recv_len);
     }
 	_fileTransfer->processTasks(this);
-	
+
     return _running;
 }
 
 void NetServer::NetFileRecv(const char* filename,void* user) {
 	NetServer* server = (NetServer*)user;
-	if(server->pilot != NULL) {
-		server->pilot->setAutoControlScript(filename);
+	if(server->_pilot != NULL) {
+		server->_pilot->setAutoControlScript(filename);
 	}
+    printf("recv file %s\n",filename);
 }

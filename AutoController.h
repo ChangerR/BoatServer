@@ -1,12 +1,12 @@
 #ifndef __BOATSERVER_AUTOCONTROL_
 #define __BOATSERVER_AUTOCONTROL_
 #include "lua.hpp"
-#include "Pilot.h"
 
+class Pilot;
 class AutoController {
 public:
     AutoController():_L(NULL),_pilot(NULL),_isRunning(false){};
-    virtual ~AutoController(){close()};
+    virtual ~AutoController(){close();}
 
     bool init(const char* script,Pilot* pilot);
 

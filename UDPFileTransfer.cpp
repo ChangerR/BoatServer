@@ -4,8 +4,8 @@
 #include "MD5.h"
 #include "NetServer.h"
 
-#define UDPFILEMAGICBEGIN ('B'<<24)|('S'<<16)|('T'<<8)|('B')
-#define UDPFILEMAGICLOOP  ('B'<<24)|('S'<<16)|('T'<<8)|('L')
+#define UDPFILEMAGICBEGIN (('B'<<24) + ('S'<<16) + ('T'<<8) + ('B'))
+#define UDPFILEMAGICLOOP  (('B'<<24) + ('S'<<16) + ('T'<<8) + ('L'))
 
 #pragma pack(push,packing)
 #pragma pack(1)
@@ -33,21 +33,49 @@ public:
         _length = len;
         _uid = uid;
     }
-	
-	unsigned int getMagic() {
-		return *((unsigned int*)(_buffer));
-	}
-	
-	const char* getTsPacketName() {
-			
-		if(getMagic() != UDPFILEMAGICBEGIN)return NULL;
-		UDPTSPacket* packet = (UDPFilePacket*)_buffer;
-		
-		return packet->filename;
-	}
 
     virtual ~UDPFilePacket() {
         delete[] _buffer;
+    }
+
+	unsigned int getMagic() {
+		return *((unsigned int*)(_buffer));
+	}
+
+	const char* getTsPacketName() {
+
+		if(getMagic() == UDPFILEMAGICBEGIN)return NULL;
+		UDPTSPacket* packet = (UDPTSPacket*)_buffer;
+
+		return packet->filename;
+	}
+
+    void debug() {
+        printf("Magic %c%c%c%c and packet length=%d\n",_buffer[0],_buffer[1],_buffer[2],_buffer[3],_length);
+        if(getMagic() == UDPFILEMAGICBEGIN) {
+            UDPTSPacketBegin* begin = (UDPTSPacketBegin*)_buffer;
+            const unsigned char* out = (unsigned char*)begin->md5;
+            printf("---Debug Begin----\n");
+            printf("recv file package begin\n");
+            printf("packet count=%d\n",begin->packet_count);
+            printf("md5=%X%X%X%X%X%X%X%X%X%X%X%X%X%X%X%X\n",out[0],out[1],out[2],out[3]
+        													,out[4],out[5],out[6],out[7]
+        													,out[8],out[9],out[10],out[11]
+        												    ,out[12],out[13],out[14],out[15]);
+            printf("recv filename=%s\n",begin->filename);
+            printf("---end---\n");
+        }else if(getMagic() == UDPFILEMAGICLOOP) {
+            UDPTSPacket* packet = (UDPTSPacket*)_buffer;
+            printf("---Debug loop----\n");
+            printf("recv file package loop\n");
+            printf("packetid=%d\n",packet->packetid);
+            printf("filepos=%d\n",packet->filepos);
+            printf("packet length=%d\n",packet->pklen);
+            printf("packet filename=%s\n",packet->filename);
+            printf("---end---\n");
+        }else{
+            printf("recv error packet\n");
+        }
     }
 public:
     char* _buffer;
@@ -88,12 +116,12 @@ FileTransferTask::FileTransferTask(int uid) {
     _file = NULL;
 }
 
-bool init(UDPTSPacketBegin* begin) {
-    ret =false;
+bool FileTransferTask::init(UDPTSPacketBegin* begin) {
+    bool ret = false;
     do{
-        strncpy(_filename,beign->filename,63);
-        memcpy(_md5,beign->md5,16);
-        _all_packet_count = beign->packet_count;
+        strncpy(_filename,begin->filename,63);
+        memcpy(_md5,begin->md5,16);
+        _all_packet_count = begin->packet_count;
         _bit = new BitManager(_all_packet_count);
 
         _file = fopen(_filename,"wb");
@@ -118,7 +146,7 @@ int FileTransferTask::processTask(NetServer* server) {
     if(_bit->getFreeBit() == 0 ) {
 		unsigned char out[16] = {0};
         fclose(_file);
-		
+        _file = NULL;
 		if(!MD5::md5sum(_filename,out))return -2;
 		for(int index = 0;index < 16; index++) {
 			if(out[index] != _md5[index]) {
@@ -128,10 +156,10 @@ int FileTransferTask::processTask(NetServer* server) {
 		}
 		sprintf(buf,"{\"name\":\"filetrans\",\"args\":[{\"type\":0,\"filename\":\"%s\"}]}",_filename);
 		server->sendMessageToClient(_uid,buf,strlen(buf));
-		
+
 		return 1;
     }else if(_timeout.elapsed(5000)) {
-        
+
         if(_timeoutCount < 0)return -1;
         sprintf(buf,"{\"name\":\"filetrans\",\"args\":[{\"type\":1,\"filename\":\"%s\",\"packet\":%d}]}",
 						_filename,_bit->getFreeBit());
@@ -142,14 +170,16 @@ int FileTransferTask::processTask(NetServer* server) {
     return 0;
 }
 
-void FileTransferTask::handlePacket(UDPFilePacket* packet) {
-	UDPTSPacket* packet = (UDPTSPacket*)packet->_buffer;
-	char* data = (unsigned char*)packet->_buffer + sizeof(UDPTSPacket);
-	
+void FileTransferTask::handlePacket(UDPFilePacket* fpacket) {
+	UDPTSPacket* packet = (UDPTSPacket*)(fpacket->_buffer);
+	unsigned char* data = (unsigned char*)(fpacket->_buffer) + sizeof(UDPTSPacket);
+
 	if(_file) {
 		fseek(_file,packet->filepos,SEEK_SET);
 		fwrite(data,packet->pklen,1,_file);
-	}
+	}else {
+        printf("Error file do not opened\n");
+    }
 	_bit->setBit(packet->packetid);
 	_timeout.reset();
 }
@@ -158,62 +188,66 @@ UDPFileTransfer::~UDPFileTransfer(){
 	for(list<UDPFilePacket*>::node* p = _packets.begin();p != _packets.end();p = p->next) {
 		delete p->element;
 	}
-	for(list<FileTransferTask*>node* p = _tasks.begin();p != _tasks.end(); p = p->next) {
+	for(list<FileTransferTask*>::node* p = _tasks.begin();p != _tasks.end(); p = p->next) {
 		delete p->element;
 	}
 }
 
-void pushPacket(int id,const char* buf,int len) {
+void UDPFileTransfer::pushPacket(int id,const char* buf,int len) {
 	UDPFilePacket* packet = new UDPFilePacket(id,buf,len);
 	_packets.push_back(packet);
 }
 
-int processTasks(NetServer* server) {
-	
+int UDPFileTransfer::processTasks(NetServer* server) {
+
 	UDPFilePacket* packet = NULL;
-	
+
 	if(!_packets.empty()) {
 		packet = _packets.begin()->element;
 		_packets.erase(_packets.begin());
 	}
-	
+
 	if(packet) {
+        //packet->debug();
+
 		if(packet->getMagic() == UDPFILEMAGICBEGIN) {
+
 			FileTransferTask* task = new FileTransferTask(packet->_uid);
-			
-			if(task.init((UDPTSPacketBegin*)packet->_buffer) == true) {
+
+			if(task->init((UDPTSPacketBegin*)(packet->_buffer)) == true) {
 				_tasks.push_back(task);
 			}else
 				delete task;
-			
+
 		}else if(packet->getMagic() == UDPFILEMAGICLOOP) {
 			for(list<FileTransferTask*>::node* p = _tasks.begin();p != _tasks.end();p = p->next) {
 				FileTransferTask* task = p->element;
-				if(task->_uid == packet->_uid&&!strcmp(task->_filename,packet->getTsPacketName()) == 0) {
-					task->handlePacket((UDPTSPacket*)packet->_buffer);
+				if(task->_uid == packet->_uid && !strcmp(task->_filename,packet->getTsPacketName())) {
+					task->handlePacket(packet);
 					break;
 				}
 			}
 		}else {
 			printf("Error:recv error file packet\n");
 		}
+
 		delete packet;
 	}
-	
+
 	for(list<FileTransferTask*>::node* p = _tasks.begin();p != _tasks.end();) {
 		FileTransferTask* task = p->element;
 		list<FileTransferTask*>::node* next = p->next;
 		int iret = task->processTask(server);
 		if(iret != 0) {
-			if(iret == 1&&_calllback != NULL)
-				_calllback(task->_filename,_user);
-				
+			if(iret == 1&&_callback != NULL)
+				_callback(task->_filename,_user);
+
 			printf("Remove task transfer filename=%s\n",task->_filename);
 			delete task;
 			_tasks.erase(p);
 		}
 		p = next;
 	}
-	
+
 	return _tasks.getSize();
 }

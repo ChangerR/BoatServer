@@ -35,6 +35,7 @@ private:
 
     void sendThruster(int id,int device,int power) {
 
+        if(_hardware == NULL)return;
         if(power > 100)power = 100;
         if(power < -100)power = -100;
 
@@ -77,6 +78,7 @@ private:
     void sendStatus();
 
     void sendLED(int id,int device,int power) {
+        if(_hardware == NULL)return;
         if(power < 0)power = 0;
         if(power > 100)power = 100;
 
@@ -97,7 +99,7 @@ private:
     }
 
 	void cancelIdControl(int id);
-	
+
     struct _Cmd {
         int id;
         std::string cmd;

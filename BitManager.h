@@ -1,7 +1,7 @@
 #ifndef _BOAT_BITMANAGER_
 #define _BOAT_BITMANAGER_
 #include <memory.h>
-
+#include <stdio.h>
 class BitManager {
 public:
     BitManager(int count) {
@@ -10,7 +10,7 @@ public:
         memset(_buffer,0,len);
         _count = count;
     }
-    
+
     virtual ~BitManager() {
         delete[] _buffer;
     }
@@ -23,7 +23,6 @@ public:
         int bit = id & 0x7;
 
         _buffer[pos] |= (1 << bit);
-
     }
 
     int getFreeBit() {

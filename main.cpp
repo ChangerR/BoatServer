@@ -39,7 +39,7 @@ void* __cdecl worker_thread(void* data) {
 	private_data* l_data = (private_data*)data;
 	Hardware* hardware = l_data->hardware;
 	NetServer* server = l_data->server;
-	
+
 	while(g_running) {
 		server->handleServerMessage();
 		hardware->processHardwareMsg();
@@ -59,12 +59,13 @@ int main(int args,char** argv) {
 	private_data l_data;
 	int port = 0;
 	pthread_t l_worker;
-	
+	char ch;
+
     if(signal(SIGINT, signal_handler) == SIG_ERR) {
         printf("could not register signal handler\n");
         exit(1);
     }
-    
+
 	while((ch = getopt(args,argv,"f:")) != -1) {
         switch(ch) {
             case 'f':
@@ -74,12 +75,12 @@ int main(int args,char** argv) {
                 break;
         }
     }
-	
+
 	if(*configFile == 0) {
         Usage(argv[0]);
         exit(1);
     }
-	
+
 	 do {
         if(!g_serverConfig.init(configFile)||!g_serverConfig.parseData()) {
             printf("Open Or parse config error,please check\n");
@@ -90,64 +91,64 @@ int main(int args,char** argv) {
             printf("do not have serial port 1 info\n");
             break;
         }
-		
+
 		if(!g_serverConfig.getString("hardware_com2",serial2)) {
             printf("do not have serial port 2 info\n");
             break;
         }
-		
+
 		if(!g_serverConfig.getString("autocontrol_lua",autocontrol_script)) {
             printf("do not have auto control script\n");
             break;
         }
-		
+
 		if(!g_serverConfig.getString("script_path",script_path)) {
             printf("do not have script recv path\n");
             break;
         }
-		
+
 		if(!g_serverConfig.getInt("server_port",&port)) {
             printf("do not have script port\n");
             break;
         }
-		
+
 		l_hardware = new Hardware(serial1,serial2);
-		
-		if(l_hardware.openHardware() == false) {
+
+		if(l_hardware->openHardware() == false) {
 			printf("hardware init failed\n");
 			break;
 		}
 
-		l_pilot = new Pilot(l_hardware,autocontrol_lua);
-		
+		l_pilot = new Pilot(l_hardware,autocontrol_script);
+
 		l_server = new NetServer(port,l_pilot,script_path);
-		
-		if(l_server.init() == false) {
+
+		if(l_server->init() == false) {
 			printf("server init failed\n");
 			break;
 		}
-		
+
 		l_data.hardware = l_hardware;
 		l_data.server = l_server;
-		
+
 		if (0 != pthread_create(&l_worker, NULL, worker_thread, (void*)&l_data)) {
 			printf("create another thread failed\n");
 			break;
-		} 
-		
+		}
+
         while(g_running) {
             l_pilot->handleControl();
         }
-		
-		pthread_join(&l_worker,NULL);
+
+		pthread_join(l_worker,NULL);
 		l_server->closeServer();
 		l_hardware->closeHardware();
-		
+
 		delete l_server;
 		delete l_pilot;
 		delete l_hardware;
 
     }while(0);
-	
+
     return 0;
 }

@@ -27,12 +27,12 @@ public:
         sockaddr_in _clientaddr;
         static int id_count;
     };
-	
+
 	static void NetFileRecv(const char* filename,void* user);
 private:
     Client* findClient(struct sockaddr_in& c);
     Client* findClinet(int uid);
-    void sendMessageToClient(int uid,const char* buf,int len);
+
     int _port;
     Pilot* _pilot;
     int _serverSocket;

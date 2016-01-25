@@ -17,8 +17,8 @@ int main(int args,char** argv) {
         printf("could not register signal handler\n");
         exit(1);
     }
-    Pilot* pilot = new Pilot(NULL);
-    NetServer* server = new NetServer(5000,pilot);
+    Pilot* pilot = new Pilot(NULL,"default.lua");
+    NetServer* server = new NetServer(6666,pilot,"");
 
     if(server->init()) {
         while(g_running) {

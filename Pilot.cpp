@@ -79,6 +79,7 @@ bool Pilot::needBroadcast(int* id,char* buf,int* len) {
 
 void Pilot::setAutoControlScript(const char* script) {
 	_autoScript = script;
+    printf("Change AutoControl script to %s\n",script);
 }
 
 void Pilot::handleControl() {
@@ -111,8 +112,8 @@ void Pilot::handleControl() {
                     _PilotState = s;
                     resetControl();
                     if(_PilotState == PILOT_AUTOCONTROL&&_autoScript.length() != 0) {
-                        _autoController.close();
-                        _autoController.init(_autoScript.c_str(),this);
+                        _autoController->close();
+                        _autoController->init(_autoScript.c_str(),this);
                     }
                 }
                 ret = false;
@@ -127,11 +128,11 @@ void Pilot::handleControl() {
         delete command;
     }
 
-    if(_StatusUpdate.elapsed(500)){
-        hardware->requestStatus();
+    if(_hardware&&_StatusUpdate.elapsed(500)){
+        _hardware->requestStatus();
     }
 
-    if(_hardware->getStatus()->isAllUpdated() == true) {
+    if(_hardware&&_hardware->getStatus()->isAllUpdated() == true) {
         _hardware->getStatus()->copyStatus(_status);
     }
 
@@ -185,7 +186,7 @@ void Pilot::sendStatus() {
     _l.AddMember("time",rapidjson::Value().SetDouble(_status->time),d.GetAllocator());
     _l.AddMember("updateTime",rapidjson::Value().SetUint64(_status->timegap + _status->timer.timegap()),d.GetAllocator());
 	_l.AddMember("controlState",rapidjson::Value().SetInt(_PilotState),d.GetAllocator());
-	
+
     args.PushBack(_l,d.GetAllocator());
     d.AddMember("args",args,d.GetAllocator());
 
