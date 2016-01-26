@@ -53,7 +53,6 @@ public:
         float roll,pitch,yaw;
         float longitude,latitude;
         float height,speed,time;
-        unsigned long timegap;
         Timer timer;
         bool isUpdated;
     };
@@ -66,7 +65,6 @@ public:
     float longitude,latitude;
     float height,speed,time;
     unsigned int update_flag;
-    Timer timer;
 };
 
 #define HARDWARE_OPENING    1

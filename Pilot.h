@@ -15,7 +15,7 @@ class AutoController;
 
 class Pilot {
 public:
-    Pilot(Hardware*,const char*);
+    Pilot(Hardware* h,const char* script);
     virtual ~Pilot();
 
     void pushControl(int id,const char* cmd);
@@ -38,37 +38,55 @@ private:
         if(_hardware == NULL)return;
         if(power > 100)power = 100;
         if(power < -100)power = -100;
-
+        int temp = 0;
         switch (device) {
             case 1:
                 _thruster1id = id;
-                _thruster1 = power * 5 + 1500;
-                _hardware->thruster(1,_thruster1);
+                temp = power * 5 + 1500;
+                if(temp != _thruster1) {
+                    _hardware->thruster(1,temp);
+                    _thruster1 = temp;
+                }
                 break;
             case 2:
                 _thruster2id = id;
-                _thruster2 = power * 5 + 1500;
-                _hardware->thruster(2,_thruster2);
+                temp = power * 5 + 1500;
+                if(temp != _thruster2) {
+                    _hardware->thruster(2,temp);
+                    _thruster2 = temp;
+                }
                 break;
             case 3:
                 _motor1id = id;
-                _motor1 = power;
-                _hardware->motor(1,_motor1);
+                temp = power;
+                if(temp != _motor1) {
+                    _hardware->motor(1,temp);
+                    _motor1 = temp;
+                }
                 break;
             case 4:
                 _motor2id = id;
-                _motor2 = power;
-                _hardware->motor(2,_motor2);
+                temp = power;
+                if(temp != _motor2) {
+                    _hardware->motor(2,temp);
+                    _motor2 = temp;
+                }
                 break;
             case 5:
                 _motor3id = id;
-                _motor3 = power;
-                _hardware->motor(3,_motor3);
+                temp = power;
+                if(temp != _motor3) {
+                    _hardware->motor(3,temp);
+                    _motor3 = temp;
+                }
                 break;
             case 6:
                 _motor4id = id;
-                _motor4 = power;
-                _hardware->motor(4,_motor4);
+                temp = power;
+                if(temp != _motor4) {
+                    _hardware->motor(4,temp);
+                    _motor4 = temp;
+                }
                 break;
             default:
                 break;

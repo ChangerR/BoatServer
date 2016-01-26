@@ -50,13 +50,11 @@ bool HWStatus::isAllUpdated() {
 }
 
 void HWStatus::reset() {
-    timer.reset();
     update_flag = 0;
 }
 
 void HWStatus::copyStatus(Status* s) {
     s->timer.reset();
-    s->timegap = timer.timegap();
     s->laser1 = laser1;s->laser2 = laser2;
     s->laser3 = laser3;s->laser4 = laser4;
     s->laser5 = laser5;
@@ -252,9 +250,6 @@ void Hardware::requestStatus() {
     pthread_mutex_lock(&_lock);
     _sendList.push_back(cmd);
     pthread_mutex_unlock(&_lock);
-
-    if(_status->isAllUpdated())
-        _status->reset();
 }
 
 void Hardware::led(int id,int data) {

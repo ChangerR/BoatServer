@@ -1,6 +1,7 @@
 #ifndef __BOATSERVER_AUTOCONTROL_
 #define __BOATSERVER_AUTOCONTROL_
 #include "lua.hpp"
+#include "Timer.h"
 
 class Pilot;
 class AutoController {
@@ -22,10 +23,14 @@ public:
 
     static int setLED(lua_State* L);
 
+    static int timerReset(lua_State* L);
+
+    static int timerElapsed(lua_State* L);
 private:
     lua_State* _L;
     Pilot* _pilot;
     bool _isRunning;
     static struct luaL_reg _controller[];
+    Timer _timer;
 };
 #endif

@@ -128,12 +128,9 @@ void Pilot::handleControl() {
         delete command;
     }
 
-    if(_hardware&&_StatusUpdate.elapsed(500)){
-        _hardware->requestStatus();
-    }
-
     if(_hardware&&_hardware->getStatus()->isAllUpdated() == true) {
         _hardware->getStatus()->copyStatus(_status);
+        _hardware->getStatus()->reset();
     }
 
     if(_sendStatusTimer.elapsed(1000)) {
@@ -184,7 +181,7 @@ void Pilot::sendStatus() {
     _l.AddMember("height",rapidjson::Value().SetDouble(_status->height),d.GetAllocator());
     _l.AddMember("speed",rapidjson::Value().SetDouble(_status->speed),d.GetAllocator());
     _l.AddMember("time",rapidjson::Value().SetDouble(_status->time),d.GetAllocator());
-    _l.AddMember("updateTime",rapidjson::Value().SetUint64(_status->timegap + _status->timer.timegap()),d.GetAllocator());
+    _l.AddMember("updateTime",rapidjson::Value().SetUint64(_status->timer.timegap()),d.GetAllocator());
 	_l.AddMember("controlState",rapidjson::Value().SetInt(_PilotState),d.GetAllocator());
 
     args.PushBack(_l,d.GetAllocator());
@@ -220,10 +217,8 @@ void Pilot::halfManualControl(rapidjson::Document* doc,int uid) {
 }
 
 void Pilot::autoControl() {
-    if(_status->isUpdated == true) {
-        _autoController->runController();
-        _status->isUpdated == false;
-    }
+    _autoController->runController();
+    _status->isUpdated == false;
 }
 
 void Pilot::resetControl() {

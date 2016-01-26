@@ -9,6 +9,8 @@ struct luaL_reg AutoController::_controller[] = {
     {"thruster",AutoController::setThruster},
     {"led",AutoController::setLED},
     {"log",AutoController::log},
+    {"timerReset",AutoController::timerReset},
+    {"elapsed",AutoController::timerElapsed},
     {NULL,NULL},
 };
 
@@ -108,7 +110,8 @@ int AutoController::getStatus(lua_State* L) {
     l_setfield(L,"height",status->height);
     l_setfield(L,"speed",status->speed);
     l_setfield(L,"time",status->time);
-    l_setfield(L,"timegap",int(status->timer.timegap() + status->timegap));
+    l_setfield(L,"timegap",int(status->timer.timegap()));
+    l_setfield(L,"updated",status->isUpdated ? 1:0);
 
     return 1;
 }
@@ -163,4 +166,36 @@ int AutoController::setLED(lua_State* L) {
     pilot->sendLED(1,device,power);
 
     return 0;
+}
+
+int AutoController::timerReset(lua_State* L) {
+    lua_getglobal(L,"_hidden_pilot_");
+    Pilot* pilot = (Pilot*)lua_touserdata(L,-1);
+
+    lua_pop(L,1);
+    if(pilot == NULL) return 0;
+    AutoController* control = pilot->_autoController;
+
+    if(control != NULL) {
+        control->_timer.reset();
+    }
+
+    return 0;
+}
+
+int AutoController::timerElapsed(lua_State* L) {
+    lua_getglobal(L,"_hidden_pilot_");
+    Pilot* pilot = (Pilot*)lua_touserdata(L,-1);
+
+    lua_pop(L,1);
+    if(pilot == NULL) return 0;
+    AutoController* control = pilot->_autoController;
+    int timeout = luaL_checkint(L,1);
+    int ret = 0;
+    if(control != NULL) {
+        ret = control->_timer.elapsed(timeout);
+    }
+    lua_pushboolean(L,ret);
+
+    return 1;
 }

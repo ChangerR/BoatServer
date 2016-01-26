@@ -4,6 +4,7 @@
 #include <netinet/in.h>
 #include <map>
 #include "UDPFileTransfer.h"
+#include <string>
 
 class Pilot;
 
@@ -29,9 +30,14 @@ public:
     };
 
 	static void NetFileRecv(const char* filename,void* user);
+
 private:
     Client* findClient(struct sockaddr_in& c);
     Client* findClinet(int uid);
+
+    void sendControlFiles(int id);
+    void listControlFiles();
+    bool findControlFileInList(const char* filename);
 
     int _port;
     Pilot* _pilot;
@@ -42,5 +48,7 @@ private:
     std::map<unsigned long,Client*> _clients;
     Timer _timer;
 	UDPFileTransfer* _fileTransfer;
+    std::string _filepath;
+    list<std::string> _controlsFileList;
 };
 #endif

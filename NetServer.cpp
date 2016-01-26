@@ -4,6 +4,11 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include "json/writer.h"
+#include "json/stringbuffer.h"
+#include "json/document.h"
+#include <dirent.h>
+#include "util.h"
 
 #define NETSERVER_BUFFER_LEN 4094
 
@@ -49,6 +54,8 @@ bool NetServer::init() {
         }
 
 		_fileTransfer->setFileRecvCallback(NetServer::NetFileRecv,this);
+
+        listControlFiles();
 
         _running = true;
         ret = true;
@@ -101,6 +108,57 @@ void NetServer::sendMessageToClient(int id,const char* buf,int len) {
     }
 }
 
+void NetServer::sendControlFiles(int id) {
+    rapidjson::Document d;
+    rapidjson::Value args(rapidjson::kArrayType);
+    rapidjson::Value _l(rapidjson::kObjectType);
+    rapidjson::StringBuffer p;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(p);
+
+    d.SetObject();
+    d.AddMember("name",rapidjson::Value().SetString("controlfiles"),d.GetAllocator());
+
+    for(list<std::string>::node* p = _controlsFileList.begin(); p != _controlsFileList.end(); p = p->next) {
+        args.PushBack(rapidjson::Value().SetString(p->element.c_str()),d.GetAllocator());
+    }
+
+    d.AddMember("args",args,d.GetAllocator());
+
+    d.Accept(writer);
+
+    sendMessageToClient(id,p.GetString(),p.Size());
+}
+
+void NetServer::listControlFiles() {
+    const char* path = _filepath.c_str();
+    DIR* p_dir;
+    struct dirent* p_dirent;
+    _controlsFileList.clear();
+
+    if((p_dir = opendir(path)) == NULL) {
+        printf("Cannot opendir %s\n",path);
+        return;
+    }
+    while((p_dirent = readdir(p_dir))) {
+        if(!strcmp(findFileExt(p_dirent->d_name),"lua")) {
+            _controlsFileList.push_back(std::string(p_dirent->d_name));
+        }
+    }
+    closedir(p_dir);
+    return;
+}
+
+bool NetServer::findControlFileInList(const char* filename) {
+    bool ret = false;
+    for(list<std::string>::node* p = _controlsFileList.begin(); p != _controlsFileList.end(); p = p->next) {
+        if(!strcmp(filename,p->element.c_str())){
+            ret = true;
+            break;
+        }
+    }
+    return ret;
+}
+
 bool NetServer::handleServerMessage() {
     int recv_len = 0;
     socklen_t addr_len = sizeof(struct sockaddr_in);
@@ -136,6 +194,23 @@ bool NetServer::handleServerMessage() {
                         Client* c = findClient(clientaddr);
                         c->_time = 60;
                         printf("Reset client uid=%d\n",c->_uid);
+                    }
+                    break;
+                case '3':
+                    {
+                        Client* c = findClient(clientaddr);
+                        c->_time = 60;
+                        if(!strcmp("listcontrolfiles",_buffer + 4)) {
+                            sendControlFiles(c->_uid);
+                        }
+                    }
+                    break;
+                case '4':
+                    {
+                        if(findControlFileInList(_buffer + 4) == true) {
+                            _pilot->setAutoControlScript(_buffer + 4);
+                            printf("set autoControl script %s\n",_buffer + 4);
+                        }
                     }
                     break;
 				case 'f':
@@ -180,8 +255,7 @@ bool NetServer::handleServerMessage() {
 
 void NetServer::NetFileRecv(const char* filename,void* user) {
 	NetServer* server = (NetServer*)user;
-	if(server->_pilot != NULL) {
-		server->_pilot->setAutoControlScript(filename);
-	}
+    if(!strcmp(findFileExt(filename),"lua"))
+	   server->_controlsFileList.push_back(std::string(filename));
     printf("recv file %s\n",filename);
 }

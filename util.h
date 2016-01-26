@@ -8,7 +8,7 @@ inline int parse_int_dec(const char* p) {
 		isNeg = true;
 		p++;
 	}
-	
+
 	while(*p) {
 		if(*p < '0' || *p > '9') {
 			ret = 0;
@@ -32,7 +32,7 @@ inline int parse_int_hex(const char* p) {
 	}
 	if(p[0] != '0' || p[1] != 'x')
 		return 0;
-	
+
 	while(*p) {
 		if((*p >= '0'&&*p <= '9')) {
 			ret *= 16;
@@ -46,7 +46,7 @@ inline int parse_int_hex(const char* p) {
 		}else{
 			ret = 0;
 			break;
-		}	
+		}
 		p++;
 	}
 	if (isNeg)
@@ -70,11 +70,11 @@ inline float parse_float(const char* p) {
 		ret += *p - '0';
 		p++;
 	}
-	
+
 	if(*p == '.') {
 		p++;
 	}
-	
+
 	while(*p) {
 		if(*p < '0' || *p > '9') {
 			return 0.f;
@@ -83,7 +83,7 @@ inline float parse_float(const char* p) {
 		ret += (*p - '0')*l;
 		p++;
 	}
-	
+
 	if (isNeg)
 		ret *= -1;
 	return ret;
@@ -162,16 +162,16 @@ inline char* get_file_from_path(const char* path,char* buf) {
 	p2 = buf;
 	p1 = path;
 	while(*p1)p1++;
-	
+
 	while(p1 >= path) {
 		if(*p1 == '/')
 			break;
 		p1--;
 	}
-	
+
 	if(*p1 == '/')
 		p1++;
-	
+
 	while(*p1) {
 		*p2++ = *p1++;
 	}
@@ -188,4 +188,18 @@ inline int sl_constrain(int a,int _max,int _min) {
 inline int sl_abs(int a) {
 	return a < 0 ? -a : a;
 }
+
+inline const char* findFileExt(const char* filename) {
+	const char* p = filename;
+	const char* end;
+	
+	while(*p)p++;
+	--p;
+	end = p;
+	while( p >= filename && *p != '.')--p;
+	if(*p != '.')
+		p = end;
+	return p+1;
+}
+
 #endif
