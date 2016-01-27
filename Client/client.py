@@ -9,6 +9,7 @@ import os
 import struct
 from hashlib import md5
 import json
+import platform
 
 class FileUploadTask:
 	def __init__(self,filename):
@@ -67,8 +68,8 @@ class BoatClient:
 
 	def handleMessage(self):
 		if self.queue.empty() == False :
-		    msg = self.queue.get(False)
-		    self.sock.sendto(msg,self.addr)
+			msg = self.queue.get(False)
+			self.sock.sendto(msg,self.addr)
 
 		rlist,wlist,xlist = select.select([self.sock],[],[],0)
 		for s in rlist:
@@ -78,6 +79,7 @@ class BoatClient:
 			if rdata['name'] == 'status':
 				status = rdata['args'][0]
 				#print status
+				self.father.onStatus(status)
 			elif rdata['name'] == 'filetrans':
 				filetrans = rdata['args'][0]
 				print rdata
@@ -97,16 +99,16 @@ class BoatClient:
 			task.processTask(self)
 
 	def thro(self,direction):
-	    msg = "2:::{\"name\":\"thro\",\"args\":[" + str(direction * self.power) + "]}"
-	    self.queue.put(msg)
+		msg = "2:::{\"name\":\"thro\",\"args\":[" + str(direction * self.power) + "]}"
+		self.queue.put(msg)
 
 	def yaw(self,direction):
-	    msg = "2:::{\"name\":\"yaw\",\"args\":[" + str(direction * self.power) + "]}"
-	    self.queue.put(msg)
+		msg = "2:::{\"name\":\"yaw\",\"args\":[" + str(direction * self.power) + "]}"
+		self.queue.put(msg)
 
 	def state(self,s):
-	    msg = "2:::{\"name\":\"ControlState\",\"args\":[" + str(s) + "]}"
-	    self.queue.put(msg)
+		msg = "2:::{\"name\":\"ControlState\",\"args\":[" + str(s) + "]}"
+		self.queue.put(msg)
 
 	def send(self,msg):
 		self.queue.put(msg)
@@ -118,6 +120,9 @@ class BoatClient:
 	def requsetList(self):
 		msg = "3:::listcontrolfiles"
 		self.queue.put(msg)
+		
+	def setPower(self,power):
+		self.power = power
 
 class PaintWindow(wx.Window):
 		def __init__(self, parent, id):
@@ -126,36 +131,66 @@ class PaintWindow(wx.Window):
 			self.Bind(wx.EVT_KEY_UP,self.onKeyUp)
 			self.Bind(wx.EVT_IDLE,self.idle)
 			self.times = 0
+			self.SetBackgroundColour("white")
 			self.requestBtn = wx.Button(self,label=u"更新列表",pos=(280,20),size=(90,30))
 			self.listc = wx.Choice(self,-1,(10,20),size=(260,30),choices=[])
 			self.setLuaBtn = wx.Button(self,label=u"设置脚本",pos=(380,20),size=(90,30))
 			self.listState = wx.Choice(self,-1,(10,70),size=(200,30),choices=[u'手动控制',u'半自动控制',u'自动控制'])
-			wx.StaticText(self,-1,u"当前控制状态",(240,75),style=wx.ALIGN_CENTER)
-			self.state = wx.TextCtrl(self,-1,u'手动控制',pos=(340,70),size=(130,30),style=wx.TE_READONLY)
-			self.state.SetBackgroundColour("lightgrey")
+			self.listState.Select(0)
+			wx.StaticText(self,-1,u"功率",(235,75),style=wx.ALIGN_CENTER)
+			self.powerSlide = wx.Slider(self,100,20,1,pos=(270,70),size=(200,-1),style=wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS)
+			self.Bind(wx.EVT_SLIDER,self.onPowerSlider,self.powerSlide)
+			#self.state = wx.TextCtrl(self,-1,u'手动控制',pos=(340,70),size=(130,30),style=wx.TE_READONLY)
+			#self.state.SetBackgroundColour("lightgrey")
 			self.panel = wx.Panel(self,-1,pos=(10,130),size=(460,300))
-			self.panel.SetBackgroundColour("darkgrey")
-			self.logstatus = wx.TextCtrl(self,-1,'',pos=(10,460),size=(460,130),style=wx.TE_READONLY|wx.TE_MULTILINE)
+			self.panel.SetBackgroundColour("grey")
+			self.logstatus = wx.TextCtrl(self,-1,'',pos=(10,440),size=(460,150),style=wx.TE_READONLY|wx.TE_MULTILINE)
 			self.logstatus.SetBackgroundColour("lightgrey")
 			self.lc = wx.ListCtrl(self.panel, -1,pos=(10,10),size=(200,280),style=wx.LC_REPORT)
 			self.lc.InsertColumn(0, u'状态')
 			self.lc.InsertColumn(1, u'数值')
 			self.lc.SetColumnWidth(0,100)
-			self.lc.SetColumnWidth(0,100)
-			self.lc.SetItemCount(8)
+			self.lc.SetColumnWidth(1,100)
+			#self.lc.SetItemCount(8)
 			self.lc.Append((u'roll',0))
 			self.lc.Append((u'pitch',0))
 			self.lc.Append((u'yaw',0))
 			self.lc.Append((u"经度",0))
-			self.lc.Append((u"经度",0))
+			self.lc.Append((u"纬度",0))
 			self.lc.Append((u"高度",0))
 			self.lc.Append((u"速度",0))
 			self.lc.Append((u"时间",0))
+			self.lc.Append((u"更新时间",0))
+			self.lc.Append((u"运行模式",u"手动控制"))
+			self.laserp = wx.Panel(self.panel,-1,pos=(220,10),size=(230,280))
+			self.laserp.SetBackgroundColour("white")
+			self.laser5 = wx.TextCtrl(self.laserp,-1,'0',pos=(90,10),size=(50,30),style=wx.TE_READONLY|wx.TE_CENTRE)
+			self.laser3 = wx.TextCtrl(self.laserp,-1,'0',pos=(10,80),size=(50,30),style=wx.TE_READONLY|wx.TE_CENTRE)
+			self.laser4 = wx.TextCtrl(self.laserp,-1,'0',pos=(170,80),size=(50,30),style=wx.TE_READONLY|wx.TE_CENTRE)
+			self.laser1 = wx.TextCtrl(self.laserp,-1,'0',pos=(10,190),size=(50,30),style=wx.TE_READONLY|wx.TE_CENTRE)
+			self.laser2 = wx.TextCtrl(self.laserp,-1,'0',pos=(170,190),size=(50,30),style=wx.TE_READONLY|wx.TE_CENTRE)
+			image = wx.Image("boat.bmp",wx.BITMAP_TYPE_BMP)
+			wx.StaticBitmap(self.laserp,bitmap=image.ConvertToBitmap(),pos=(65,45))
 			self.Bind(wx.EVT_BUTTON,self.onRequestList,self.requestBtn)
 			self.Bind(wx.EVT_CHOICE,self.onStateChoice,self.listState)
 			self.client = BoatClient("127.0.0.1",6666,self)
 			self.control_list = []
-
+		
+		def onPowerSlider(self,event):
+			self.client.setPower(event.GetInt())
+			
+		def onStatus(self,status):
+			self.lc.SetStringItem(0,1,str(status[u"roll"]))
+			self.lc.SetStringItem(1,1,str(status[u"pitch"]))
+			self.lc.SetStringItem(2,1,str(status[u"yaw"]))
+			self.lc.SetStringItem(3,1,str(status[u"longitude"]))
+			self.lc.SetStringItem(4,1,str(status[u"latitude"]))
+			self.lc.SetStringItem(5,1,str(status[u"height"]))
+			self.lc.SetStringItem(6,1,str(status[u"speed"]))
+			self.lc.SetStringItem(7,1,str(status[u"time"]))
+			self.lc.SetStringItem(8,1,str(status[u"updateTime"]))
+			self.lc.SetStringItem(9,1,self.listState.GetItems[status[u"controlState"]])
+			
 		def onStateChoice(self,event):
 			self.client.state(self.listState.GetCurrentSelection())
 
@@ -183,6 +218,8 @@ class PaintWindow(wx.Window):
 					self.client.state(1)
 				elif event.GetKeyCode() == 51:
 					self.client.state(2)
+				elif event.GetKeyCode() == 52:
+					self.lc.SetStringItem(3,1,'2')
 
 		def onKeyUp(self,event):
 			if self.client != None:
@@ -199,42 +236,46 @@ class PaintWindow(wx.Window):
 			if self.client != None:
 				self.client.handleMessage()
 			event.RequestMore(True)
+			time.sleep(0.001)
 
 		def sendFile(self,filename):
 			self.client.sendFile(filename)
 
 class PaintFrame(wx.Frame):
 	def __init__(self, parent):
-		wx.Frame.__init__(self, parent, -1, "Boat Client", size = (480, 600))
+		wndsize = (480,640)
+		if platform.system() == 'Windows':
+			wndsize = (496,660)
+		wx.Frame.__init__(self, parent, -1, u"无人船控制系统", size = wndsize)
 		self.paint = PaintWindow(self, -1)
 		menubar = wx.MenuBar()
 		#File menu
 		fileMenu = wx.Menu()
-		fileMenu.Append(100,"&Upload","")
-		menubar.Append(fileMenu,"&File")
+		fileMenu.Append(100,u"&上传","")
+		menubar.Append(fileMenu,u"&文件")
 
 		helpMenu = wx.Menu()
-		helpMenu.Append(200,"About","")
-		menubar.Append(helpMenu,"&Help")
+		helpMenu.Append(200,u"&关于","")
+		menubar.Append(helpMenu,u"&帮助")
 
 		self.SetMenuBar(menubar)
 		self.Bind(wx.EVT_MENU,self.onFileOpen,id=100)
 		self.Bind(wx.EVT_MENU,self.onAbout,id=200)
 
 	def onFileOpen(self,event):
-		dialog = wx.FileDialog(self,"Open file...",os.getcwd(),style=wx.OPEN,wildcard="*")
+		dialog = wx.FileDialog(self,u"上传控制脚本",os.getcwd(),style=wx.OPEN,wildcard="*.lua")
 		if dialog.ShowModal() == wx.ID_OK:
 			self.paint.sendFile(dialog.GetPath())
 		dialog.Destroy()
 
 	def onAbout(self,event):
-		msg = wx.MessageDialog (self,"copyright @ ABR Innovation","about",wx.OK)
+		msg = wx.MessageDialog (self,u"copyright © 杭州爱易特智能技术有限公司 2015-2016",u"关于此系统",wx.OK)
 		msg.ShowModal()
 		msg.Destroy()
 
 
 if __name__ == '__main__':
-    app = wx.App()
-    frame = PaintFrame(None)
-    frame.Show(True)
-    app.MainLoop()
+	app = wx.App()
+	frame = PaintFrame(None)
+	frame.Show(True)
+	app.MainLoop()
