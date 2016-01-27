@@ -15,6 +15,7 @@ Pilot::Pilot(Hardware* h,const char* script) {
     _led1id = _led2id = 0;
     _led1 = _led2 = 0;
     _autoController = new AutoController;
+    _autoScript = script;
 }
 
 Pilot::~Pilot() {

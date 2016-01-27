@@ -18,7 +18,7 @@ int main(int args,char** argv) {
         exit(1);
     }
     Pilot* pilot = new Pilot(NULL,"default.lua");
-    NetServer* server = new NetServer(6666,pilot,"");
+    NetServer* server = new NetServer(6666,pilot,"/home/changer/Desktop/test/boatServer/workdir");
 
     if(server->init()) {
         while(g_running) {

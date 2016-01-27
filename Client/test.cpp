@@ -54,8 +54,9 @@ inline char* get_file_from_path(const char* path,char* buf) {
 int main(int argc,char** argv) {
 	
 	if(argc == 2) {
-		ls(argv[1]);
+	//	ls();
 	}
+	ls("/home/changer/Desktop/test/boatServer/workdir");
 	char buf[64];
 	printf("%s\n",get_file_from_path("/c/a/d/b/d/f.g",buf));
 	return 0;

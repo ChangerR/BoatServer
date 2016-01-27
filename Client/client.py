@@ -55,7 +55,7 @@ class FileUploadTask:
 			return False
 
 class BoatClient:
-	def __init__(self,addr,port):
+	def __init__(self,addr,port,father):
 		self.addr = (addr , port)
 		self.sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 		self.queue = Queue.Queue(maxsize=0xffff)
@@ -63,6 +63,7 @@ class BoatClient:
 		self.last = time.time()*1000.0
 		self.power = 20
 		self.tasks = []
+		self.father = father;
 
 	def handleMessage(self):
 		if self.queue.empty() == False :
@@ -85,6 +86,8 @@ class BoatClient:
 						if task.endTask(filetrans['filename']) == True:
 							self.tasks.remove(task)
 							break
+			elif rdata['name'] == 'controlfiles':
+				self.father.setFileList(rdata['args'])
 
 		if time.time()*1000.0 - self.last > 45000.0:
 			self.sock.sendto("1:::",self.addr)
@@ -112,6 +115,10 @@ class BoatClient:
 		task = FileUploadTask(filename)
 		self.tasks.append(task)
 
+	def requsetList(self):
+		msg = "3:::listcontrolfiles"
+		self.queue.put(msg)
+
 class PaintWindow(wx.Window):
 		def __init__(self, parent, id):
 			wx.Window.__init__(self, parent, id)
@@ -119,8 +126,46 @@ class PaintWindow(wx.Window):
 			self.Bind(wx.EVT_KEY_UP,self.onKeyUp)
 			self.Bind(wx.EVT_IDLE,self.idle)
 			self.times = 0
+			self.requestBtn = wx.Button(self,label=u"更新列表",pos=(280,20),size=(90,30))
+			self.listc = wx.Choice(self,-1,(10,20),size=(260,30),choices=[])
+			self.setLuaBtn = wx.Button(self,label=u"设置脚本",pos=(380,20),size=(90,30))
+			self.listState = wx.Choice(self,-1,(10,70),size=(200,30),choices=[u'手动控制',u'半自动控制',u'自动控制'])
+			wx.StaticText(self,-1,u"当前控制状态",(240,75),style=wx.ALIGN_CENTER)
+			self.state = wx.TextCtrl(self,-1,u'手动控制',pos=(340,70),size=(130,30),style=wx.TE_READONLY)
+			self.state.SetBackgroundColour("lightgrey")
+			self.panel = wx.Panel(self,-1,pos=(10,130),size=(460,300))
+			self.panel.SetBackgroundColour("darkgrey")
+			self.logstatus = wx.TextCtrl(self,-1,'',pos=(10,460),size=(460,130),style=wx.TE_READONLY|wx.TE_MULTILINE)
+			self.logstatus.SetBackgroundColour("lightgrey")
+			self.lc = wx.ListCtrl(self.panel, -1,pos=(10,10),size=(200,280),style=wx.LC_REPORT)
+			self.lc.InsertColumn(0, u'状态')
+			self.lc.InsertColumn(1, u'数值')
+			self.lc.SetColumnWidth(0,100)
+			self.lc.SetColumnWidth(0,100)
+			self.lc.SetItemCount(8)
+			self.lc.Append((u'roll',0))
+			self.lc.Append((u'pitch',0))
+			self.lc.Append((u'yaw',0))
+			self.lc.Append((u"经度",0))
+			self.lc.Append((u"经度",0))
+			self.lc.Append((u"高度",0))
+			self.lc.Append((u"速度",0))
+			self.lc.Append((u"时间",0))
+			self.Bind(wx.EVT_BUTTON,self.onRequestList,self.requestBtn)
+			self.Bind(wx.EVT_CHOICE,self.onStateChoice,self.listState)
+			self.client = BoatClient("127.0.0.1",6666,self)
+			self.control_list = []
 
-			self.client = BoatClient("127.0.0.1",6666)
+		def onStateChoice(self,event):
+			self.client.state(self.listState.GetCurrentSelection())
+
+		def onRequestList(self,event):
+			self.client.requsetList();
+
+		def setFileList(self,lists):
+			self.control_list = lists
+			self.listc.SetItems(lists)
+			self.listc.Select(0)
 
 		def onKeyDown(self,event):
 			if self.client != None:

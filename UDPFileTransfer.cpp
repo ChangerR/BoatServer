@@ -85,7 +85,7 @@ public:
 
 class FileTransferTask{
 public:
-    FileTransferTask(int uid);
+    FileTransferTask(int uid,const char* filepath);
     virtual ~FileTransferTask();
 
     bool init(UDPTSPacketBegin* begin);
@@ -104,9 +104,10 @@ private:
     int _timeoutCount;
     int _uid;
 	friend class UDPFileTransfer;
+    std::string _filepath;
 };
 
-FileTransferTask::FileTransferTask(int uid) {
+FileTransferTask::FileTransferTask(int uid,const char* filepath) {
     _uid = uid;
     memset(_filename,0,64);
     memset(_md5,0,16);
@@ -114,17 +115,20 @@ FileTransferTask::FileTransferTask(int uid) {
     _all_packet_count = 0;
     _bit = NULL;
     _file = NULL;
+    _filepath = filepath;
 }
 
 bool FileTransferTask::init(UDPTSPacketBegin* begin) {
     bool ret = false;
+    std::string filename = _filepath;
     do{
         strncpy(_filename,begin->filename,63);
         memcpy(_md5,begin->md5,16);
         _all_packet_count = begin->packet_count;
         _bit = new BitManager(_all_packet_count);
-
-        _file = fopen(_filename,"wb");
+        filename += "/";
+        filename += _filename;
+        _file = fopen(filename.c_str(),"wb");
         if(_file != NULL)
             ret = true;
     }while(0);
@@ -147,7 +151,8 @@ int FileTransferTask::processTask(NetServer* server) {
 		unsigned char out[16] = {0};
         fclose(_file);
         _file = NULL;
-		if(!MD5::md5sum(_filename,out))return -2;
+        std::string filename = _filepath + "/" + _filename;
+		if(!MD5::md5sum(filename.c_str(),out))return -2;
 		for(int index = 0;index < 16; index++) {
 			if(out[index] != _md5[index]) {
 				printf("Md5 verify Error,please check!\n");
@@ -212,7 +217,7 @@ int UDPFileTransfer::processTasks(NetServer* server) {
 
 		if(packet->getMagic() == UDPFILEMAGICBEGIN) {
 
-			FileTransferTask* task = new FileTransferTask(packet->_uid);
+			FileTransferTask* task = new FileTransferTask(packet->_uid,_filepath.c_str());
 
 			if(task->init((UDPTSPacketBegin*)(packet->_buffer)) == true) {
 				_tasks.push_back(task);
@@ -242,7 +247,7 @@ int UDPFileTransfer::processTasks(NetServer* server) {
 			if(iret == 1&&_callback != NULL)
 				_callback(task->_filename,_user);
 
-			printf("Remove task transfer filename=%s\n",task->_filename);
+			printf("Remove task transfer filename=%s ret=%d\n",task->_filename,iret);
 			delete task;
 			_tasks.erase(p);
 		}

@@ -27,6 +27,7 @@ NetServer::NetServer(int port,Pilot* pilot,const char* filepath) {
     _running = false;
     _buffer = new char[NETSERVER_BUFFER_LEN];
 	_fileTransfer = new UDPFileTransfer(filepath);
+    _filepath = filepath;
 }
 
 NetServer::~NetServer() {
@@ -208,8 +209,9 @@ bool NetServer::handleServerMessage() {
                 case '4':
                     {
                         if(findControlFileInList(_buffer + 4) == true) {
-                            _pilot->setAutoControlScript(_buffer + 4);
-                            printf("set autoControl script %s\n",_buffer + 4);
+                            std::string filename = _filepath + "/" + (_buffer + 4);
+                            _pilot->setAutoControlScript(filename.c_str());
+                            printf("set autoControl script %s\n",filename.c_str());
                         }
                     }
                     break;
