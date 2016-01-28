@@ -3,7 +3,7 @@
 #include "slconfig.h"
 #define MAX_SERIALBUFFER_SIZE 4096*4
 enum BUADRATE {
-	_B9600,_B115200,
+	_B9600,_B19200,_B115200,
 };
 
 class Serial {

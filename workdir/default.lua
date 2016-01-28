@@ -13,4 +13,4 @@ function loop()
     return 0
 end
 
-print "Lua script start"
+print "Lua script start 2"

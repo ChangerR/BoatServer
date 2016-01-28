@@ -11,7 +11,8 @@
 #include "NetServer.h"
 #include "Hardware.h"
 #include <pthread.h>
-
+#include <string>
+#include <dirent.h>
 void Usage(const char* name) {
 	printf("Usage: %s -f [config file]\n",name);
 }
@@ -45,6 +46,22 @@ void* __cdecl worker_thread(void* data) {
 		hardware->processHardwareMsg();
 	}
 	return NULL;
+}
+
+inline int is_file_exist(const char* filepath) {
+	if(filepath == NULL)
+		return -1;
+	if(access(filepath,F_OK|R_OK) == 0)
+	 	return 0;
+	return -1;
+}
+
+inline int is_dir_exist(const char* dirpath) {
+	if(dirpath == NULL)
+		return -1;
+	if(opendir(dirpath) == NULL)
+		return -1;
+	return 0;
 }
 
 int main(int args,char** argv) {
@@ -112,6 +129,18 @@ int main(int args,char** argv) {
             break;
         }
 
+		if(is_dir_exist(script_path) != 0) {
+			printf("Do not have this work dir %s\n",script_path);
+			break;
+		}
+
+		std::string filename = std::string(script_path) + "/" + autocontrol_script;
+
+		if(is_file_exist(filename.c_str()) != 0) {
+			printf("Do not have auto run script %s\n",filename.c_str());
+			break;
+		}
+
 		l_hardware = new Hardware(serial1,serial2);
 
 		if(l_hardware->openHardware() == false) {
@@ -119,7 +148,7 @@ int main(int args,char** argv) {
 			break;
 		}
 
-		l_pilot = new Pilot(l_hardware,autocontrol_script);
+		l_pilot = new Pilot(l_hardware,filename.c_str());
 
 		l_server = new NetServer(port,l_pilot,script_path);
 

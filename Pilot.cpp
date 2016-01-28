@@ -184,7 +184,14 @@ void Pilot::sendStatus() {
     _l.AddMember("time",rapidjson::Value().SetDouble(_status->time),d.GetAllocator());
     _l.AddMember("updateTime",rapidjson::Value().SetUint64(_status->timer.timegap()),d.GetAllocator());
 	_l.AddMember("controlState",rapidjson::Value().SetInt(_PilotState),d.GetAllocator());
-
+    _l.AddMember("led1",rapidjson::Value().SetInt(_led1),d.GetAllocator());
+    _l.AddMember("led2",rapidjson::Value().SetInt(_led2),d.GetAllocator());
+    _l.AddMember("thrust1",rapidjson::Value().SetInt(_thruster1),d.GetAllocator());
+    _l.AddMember("thrust2",rapidjson::Value().SetInt(_thruster2),d.GetAllocator());
+    _l.AddMember("motor1",rapidjson::Value().SetInt(_motor1),d.GetAllocator());
+    _l.AddMember("motor2",rapidjson::Value().SetInt(_motor2),d.GetAllocator());
+    _l.AddMember("motor3",rapidjson::Value().SetInt(_motor3),d.GetAllocator());
+    _l.AddMember("motor4",rapidjson::Value().SetInt(_motor4),d.GetAllocator());
     args.PushBack(_l,d.GetAllocator());
     d.AddMember("args",args,d.GetAllocator());
 
@@ -209,12 +216,15 @@ void Pilot::manualControl(rapidjson::Document* doc,int uid) {
             printf("yaw control power=%d\n",s);
 			sendThruster(uid,1,s);
 			sendThruster(uid,2,-s);
+        } else if(!strcmp("led",(*doc)["name"].GetString())&&pArgs[rapidjson::SizeType(1)].IsInt()) {
+            printf("led control id=%d power=%d\n",s,pArgs[rapidjson::SizeType(1)].GetInt());
+            sendLED(uid,s,pArgs[rapidjson::SizeType(1)].GetInt());
         }
     }
 }
 
 void Pilot::halfManualControl(rapidjson::Document* doc,int uid) {
-    pushBroadcast(uid,"Sorry,we do not support this Control");
+    pushBroadcast(uid,"{\"name\":\"log\",\"args\":[\"Sorry,We do not support this control status\"]}");
 }
 
 void Pilot::autoControl() {

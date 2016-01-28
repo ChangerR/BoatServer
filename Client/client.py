@@ -23,7 +23,6 @@ class FileUploadTask:
 		self.id = 0
 		self.filename = str(filename.split("/")[-1])
 		self.pos = 0
-		print "file task init end"
 
 	def processTask(self,client):
 		if self.id == 0:
@@ -44,7 +43,7 @@ class FileUploadTask:
 			self.pos = self.pos + writelen
 			self.length = self.length - writelen
 			buf = buf + data
-			print len(buf)
+			#print len(buf)
 			client.send(buf)
 		self.id = self.id + 1
 
@@ -62,7 +61,6 @@ class BoatClient:
 		self.queue = Queue.Queue(maxsize=0xffff)
 		#self.sock.bind(self.addr)
 		self.last = time.time()*1000.0
-		self.power = 20
 		self.tasks = []
 		self.father = father;
 
@@ -90,6 +88,9 @@ class BoatClient:
 							break
 			elif rdata['name'] == 'controlfiles':
 				self.father.setFileList(rdata['args'])
+			elif rdata['name'] == 'log':
+				#print rdata
+				self.father.appendLog(rdata['args'][0])
 
 		if time.time()*1000.0 - self.last > 45000.0:
 			self.sock.sendto("1:::",self.addr)
@@ -99,15 +100,19 @@ class BoatClient:
 			task.processTask(self)
 
 	def thro(self,direction):
-		msg = "2:::{\"name\":\"thro\",\"args\":[" + str(direction * self.power) + "]}"
+		msg = "2:::{\"name\":\"thro\",\"args\":[" + str(direction) + "]}"
 		self.queue.put(msg)
 
 	def yaw(self,direction):
-		msg = "2:::{\"name\":\"yaw\",\"args\":[" + str(direction * self.power) + "]}"
+		msg = "2:::{\"name\":\"yaw\",\"args\":[" + str(direction) + "]}"
 		self.queue.put(msg)
 
 	def state(self,s):
 		msg = "2:::{\"name\":\"ControlState\",\"args\":[" + str(s) + "]}"
+		self.queue.put(msg)
+
+	def led(self,id,power):
+		msg = "2:::{\"name\":\"led\",\"args\":[" + str(id) + "," +  str(power) +"]}"
 		self.queue.put(msg)
 
 	def send(self,msg):
@@ -120,15 +125,17 @@ class BoatClient:
 	def requsetList(self):
 		msg = "3:::listcontrolfiles"
 		self.queue.put(msg)
-		
+
 	def setPower(self,power):
 		self.power = power
+
+	def setControlLua(self,file):
+		msg = "4:::" + file
+		self.queue.put(msg)
 
 class PaintWindow(wx.Window):
 		def __init__(self, parent, id):
 			wx.Window.__init__(self, parent, id)
-			self.Bind(wx.EVT_KEY_DOWN,self.onKeyDown)
-			self.Bind(wx.EVT_KEY_UP,self.onKeyUp)
 			self.Bind(wx.EVT_IDLE,self.idle)
 			self.times = 0
 			self.SetBackgroundColour("white")
@@ -139,12 +146,17 @@ class PaintWindow(wx.Window):
 			self.listState.Select(0)
 			wx.StaticText(self,-1,u"功率",(235,75),style=wx.ALIGN_CENTER)
 			self.powerSlide = wx.Slider(self,100,20,1,pos=(270,70),size=(200,-1),style=wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS)
-			self.Bind(wx.EVT_SLIDER,self.onPowerSlider,self.powerSlide)
+			wx.StaticText(self,-1,u"灯光1",(10,130),style=wx.ALIGN_CENTER)
+			self.led1Slide = wx.Slider(self,10010,0,0,pos=(50,110),size=(170,-1),style=wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS)
+			wx.StaticText(self,-1,u"灯光2",(235,130),style=wx.ALIGN_CENTER)
+			self.les2Slide = wx.Slider(self,10011,0,0,pos=(280,110),size=(190,-1),style=wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS)
+			self.Bind(wx.EVT_SLIDER,self.onLED1Slide,self.led1Slide)
+			self.Bind(wx.EVT_SLIDER,self.onLED2Slide,self.les2Slide)
 			#self.state = wx.TextCtrl(self,-1,u'手动控制',pos=(340,70),size=(130,30),style=wx.TE_READONLY)
 			#self.state.SetBackgroundColour("lightgrey")
-			self.panel = wx.Panel(self,-1,pos=(10,130),size=(460,300))
+			self.panel = wx.Panel(self,-1,pos=(10,170),size=(460,300))
 			self.panel.SetBackgroundColour("grey")
-			self.logstatus = wx.TextCtrl(self,-1,'',pos=(10,440),size=(460,150),style=wx.TE_READONLY|wx.TE_MULTILINE)
+			self.logstatus = wx.TextCtrl(self,-1,'',pos=(10,480),size=(460,150),style=wx.TE_READONLY|wx.TE_MULTILINE)
 			self.logstatus.SetBackgroundColour("lightgrey")
 			self.lc = wx.ListCtrl(self.panel, -1,pos=(10,10),size=(200,280),style=wx.LC_REPORT)
 			self.lc.InsertColumn(0, u'状态')
@@ -162,6 +174,14 @@ class PaintWindow(wx.Window):
 			self.lc.Append((u"时间",0))
 			self.lc.Append((u"更新时间",0))
 			self.lc.Append((u"运行模式",u"手动控制"))
+			self.lc.Append((u"灯光模组1",0))
+			self.lc.Append((u"灯光模组2",0))
+			self.lc.Append((u"Thrust1",0))
+			self.lc.Append((u"Thrust2",0))
+			self.lc.Append((u"Motor1",0))
+			self.lc.Append((u"Motor2",0))
+			self.lc.Append((u"Motor3",0))
+			self.lc.Append((u"Motor4",0))
 			self.laserp = wx.Panel(self.panel,-1,pos=(220,10),size=(230,280))
 			self.laserp.SetBackgroundColour("white")
 			self.laser5 = wx.TextCtrl(self.laserp,-1,'0',pos=(90,10),size=(50,30),style=wx.TE_READONLY|wx.TE_CENTRE)
@@ -172,13 +192,22 @@ class PaintWindow(wx.Window):
 			image = wx.Image("boat.bmp",wx.BITMAP_TYPE_BMP)
 			wx.StaticBitmap(self.laserp,bitmap=image.ConvertToBitmap(),pos=(65,45))
 			self.Bind(wx.EVT_BUTTON,self.onRequestList,self.requestBtn)
+			self.Bind(wx.EVT_BUTTON,self.onSetControlLua,self.setLuaBtn)
 			self.Bind(wx.EVT_CHOICE,self.onStateChoice,self.listState)
-			self.client = BoatClient("127.0.0.1",6666,self)
+			self.Bind(wx.EVT_KEY_DOWN,self.onKeyDown,self)
+			self.Bind(wx.EVT_KEY_UP,self.onKeyUp,self)
+			self.client = BoatClient("localhost",6666,self)
 			self.control_list = []
-		
-		def onPowerSlider(self,event):
-			self.client.setPower(event.GetInt())
-			
+
+		def onSetControlLua(self,event):
+			self.client.setControlLua(self.listc.GetItems()[self.listc.GetCurrentSelection()])
+
+		def onLED1Slide(self,event):
+			self.client.led(1,event.GetInt())
+
+		def onLED2Slide(self,event):
+			self.client.led(2,event.GetInt())
+
 		def onStatus(self,status):
 			self.lc.SetStringItem(0,1,str(status[u"roll"]))
 			self.lc.SetStringItem(1,1,str(status[u"pitch"]))
@@ -189,8 +218,21 @@ class PaintWindow(wx.Window):
 			self.lc.SetStringItem(6,1,str(status[u"speed"]))
 			self.lc.SetStringItem(7,1,str(status[u"time"]))
 			self.lc.SetStringItem(8,1,str(status[u"updateTime"]))
-			self.lc.SetStringItem(9,1,self.listState.GetItems[status[u"controlState"]])
-			
+			self.lc.SetStringItem(9,1,self.listState.GetItems()[status[u"controlState"]])
+			self.lc.SetStringItem(10,1,str(status[u"led1"]))
+			self.lc.SetStringItem(11,1,str(status[u"led2"]))
+			self.lc.SetStringItem(12,1,str(status[u"thrust1"]))
+			self.lc.SetStringItem(13,1,str(status[u"thrust2"]))
+			self.lc.SetStringItem(14,1,str(status[u"motor1"]))
+			self.lc.SetStringItem(15,1,str(status[u"motor2"]))
+			self.lc.SetStringItem(16,1,str(status[u"motor3"]))
+			self.lc.SetStringItem(17,1,str(status[u"motor4"]))
+			self.laser1.SetValue(str(status[u'laser1']))
+			self.laser2.SetValue(str(status[u'laser2']))
+			self.laser3.SetValue(str(status[u'laser3']))
+			self.laser4.SetValue(str(status[u'laser4']))
+			self.laser5.SetValue(str(status[u'laser5']))
+
 		def onStateChoice(self,event):
 			self.client.state(self.listState.GetCurrentSelection())
 
@@ -205,21 +247,19 @@ class PaintWindow(wx.Window):
 		def onKeyDown(self,event):
 			if self.client != None:
 				if event.GetKeyCode() == 87:
-					self.client.thro(1)
+					self.client.thro(self.powerSlide.GetValue())
 				elif event.GetKeyCode() == 65:
-					self.client.yaw(-1)
+					self.client.yaw(-self.powerSlide.GetValue())
 				elif event.GetKeyCode() == 83:
-					self.client.thro(-1)
+					self.client.thro(-self.powerSlide.GetValue())
 				elif event.GetKeyCode() == 68:
-					self.client.yaw(1)
+					self.client.yaw(self.powerSlide.GetValue())
 				elif event.GetKeyCode() == 49:
 					self.client.state(0)
 				elif event.GetKeyCode() == 50:
 					self.client.state(1)
 				elif event.GetKeyCode() == 51:
 					self.client.state(2)
-				elif event.GetKeyCode() == 52:
-					self.lc.SetStringItem(3,1,'2')
 
 		def onKeyUp(self,event):
 			if self.client != None:
@@ -240,6 +280,9 @@ class PaintWindow(wx.Window):
 
 		def sendFile(self,filename):
 			self.client.sendFile(filename)
+
+		def appendLog(self,logs):
+			self.logstatus.AppendText(logs + '\r\n')
 
 class PaintFrame(wx.Frame):
 	def __init__(self, parent):

@@ -19,6 +19,9 @@ static int getDCBBuadRate(BUADRATE b) {
 		case _B9600:
 			br = B9600;
 			break;
+		case _B19200:
+			br = B19200;
+			break;
 		case _B115200:
 			br = B115200;
 			break;
