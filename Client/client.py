@@ -147,9 +147,9 @@ class PaintWindow(wx.Window):
 			wx.StaticText(self,-1,u"功率",(235,75),style=wx.ALIGN_CENTER)
 			self.powerSlide = wx.Slider(self,100,20,1,pos=(270,70),size=(200,-1),style=wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS)
 			wx.StaticText(self,-1,u"灯光1",(10,130),style=wx.ALIGN_CENTER)
-			self.led1Slide = wx.Slider(self,10010,0,0,pos=(50,110),size=(170,-1),style=wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS)
+			self.led1Slide = wx.Slider(self,10010,0,0,pos=(50,115),size=(170,-1),style=wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS)
 			wx.StaticText(self,-1,u"灯光2",(235,130),style=wx.ALIGN_CENTER)
-			self.les2Slide = wx.Slider(self,10011,0,0,pos=(280,110),size=(190,-1),style=wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS)
+			self.les2Slide = wx.Slider(self,10011,0,0,pos=(280,115),size=(190,-1),style=wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS)
 			self.Bind(wx.EVT_SLIDER,self.onLED1Slide,self.led1Slide)
 			self.Bind(wx.EVT_SLIDER,self.onLED2Slide,self.les2Slide)
 			#self.state = wx.TextCtrl(self,-1,u'手动控制',pos=(340,70),size=(130,30),style=wx.TE_READONLY)
@@ -288,7 +288,7 @@ class PaintFrame(wx.Frame):
 	def __init__(self, parent):
 		wndsize = (480,640)
 		if platform.system() == 'Windows':
-			wndsize = (496,660)
+			wndsize = (496,695)
 		wx.Frame.__init__(self, parent, -1, u"无人船控制系统", size = wndsize)
 		self.paint = PaintWindow(self, -1)
 		menubar = wx.MenuBar()
