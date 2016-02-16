@@ -29,10 +29,9 @@ void HWStatus::setLaserB(int l3,int l4,int l5) {
     update_flag |= LASERB_UPDATE;
 }
 
-void HWStatus::setGPS(float _longitude,float _latitude,float _h,float _s,float _t) {
+void HWStatus::setGPS(float _longitude,float _latitude,float _s,float _t) {
     longitude = _longitude;
     latitude = _latitude;
-    height = _h;
     speed = _s;
     time = _t;
     update_flag |= GPS_UPDATE;
@@ -305,23 +304,20 @@ int Hardware::LaserBRead(int args,char (*argv)[MAX_CMD_ARGUMENT_LEN],void* user)
 
 int Hardware::GPSRead(int args,char (*argv)[MAX_CMD_ARGUMENT_LEN],void* user) {
     HWStatus* status = (HWStatus*)user;
-    if(args == 5) {
-        float longitudedata = parse_float(argv[0]);
-        float latitudedata = parse_float(argv[1]);
-        float heightdata = parse_float(argv[2]);
-        float speeddata = parse_float(argv[3]);
-        float timedata = parse_float(argv[4]);
-        status->setGPS(longitudedata,latitudedata,heightdata,speeddata,timedata);
+    if(args == 1 && argv[0][0] == '$') {
+        printf("GPS DATA:%s\n",argv[0]);
+        //status->setGPS(longitudedata,latitudedata,heightdata,speeddata,timedata);
     }
+    status->setGPS(0.f,0.f,0.f,0.f);
     return 0;
 }
 
 int Hardware::IMURead(int args,char (*argv)[MAX_CMD_ARGUMENT_LEN],void* user) {
     HWStatus* status = (HWStatus*)user;
-    if(args == 3) {
-        float roll = parse_float(argv[0]);
-        float pitch = parse_float(argv[1]);
-        float yaw = parse_float(argv[2]);
+    if(args == 4) {
+        float roll = parse_float(argv[1]);
+        float pitch = parse_float(argv[2]);
+        float yaw = parse_float(argv[3]);
         status->setIMU(roll,pitch,yaw);
     }
     return 0;

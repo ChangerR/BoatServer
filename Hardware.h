@@ -52,7 +52,7 @@ public:
         int laser4,laser5;
         float roll,pitch,yaw;
         float longitude,latitude;
-        float height,speed,time;
+        float speed,time;
         Timer timer;
         bool isUpdated;
     };

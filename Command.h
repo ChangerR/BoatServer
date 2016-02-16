@@ -5,7 +5,7 @@
 #include <map>
 #include <string>
 
-#define MAX_CMD_ARGUMENT_LEN 128
+#define MAX_CMD_ARGUMENT_LEN 256
 #define MAX_CMD_ARGS 16
 #define MAX_INOCMD 128
 typedef int (*ino_execute)(int,char (*)[MAX_CMD_ARGUMENT_LEN],void*);
