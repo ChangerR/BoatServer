@@ -20,7 +20,7 @@ public:
         laser4 = laser5 = 0;
         roll = pitch = yaw = 0.f;
         longitude = latitude = 0.f;
-        height = speed = time = 0.f;
+        speed = time = 0.f;
         update_flag = 0;
     }
     virtual ~HWStatus(){}
@@ -29,7 +29,7 @@ public:
 
     void setLaserB(int l3,int l4,int l5);
 
-    void setGPS(float _longitude,float _latitude,float _h,float _s,float _t);
+    void setGPS(float _longitude,float _latitude,float _s,float _t);
 
     void setIMU(float _r,float _p,float _y);
 
@@ -44,7 +44,7 @@ public:
             laser4 = laser5 = 0;
             roll = pitch = yaw = 0.f;
             longitude = latitude = 0.f;
-            height = speed = time = 0.f;
+            speed = time = 0.f;
         }
         virtual ~Status(){}
 

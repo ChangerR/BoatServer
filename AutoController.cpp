@@ -107,7 +107,6 @@ int AutoController::getStatus(lua_State* L) {
     l_setfield(L,"yaw",status->yaw);
     l_setfield(L,"longitude",status->longitude);
     l_setfield(L,"latitude",status->latitude);
-    l_setfield(L,"height",status->height);
     l_setfield(L,"speed",status->speed);
     l_setfield(L,"time",status->time);
     l_setfield(L,"timegap",int(status->timer.timegap()));

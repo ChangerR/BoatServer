@@ -179,7 +179,6 @@ void Pilot::sendStatus() {
     _l.AddMember("pitch",rapidjson::Value().SetDouble(_status->pitch),d.GetAllocator());
     _l.AddMember("latitude",rapidjson::Value().SetDouble(_status->latitude),d.GetAllocator());
     _l.AddMember("longitude",rapidjson::Value().SetDouble(_status->longitude),d.GetAllocator());
-    _l.AddMember("height",rapidjson::Value().SetDouble(_status->height),d.GetAllocator());
     _l.AddMember("speed",rapidjson::Value().SetDouble(_status->speed),d.GetAllocator());
     _l.AddMember("time",rapidjson::Value().SetDouble(_status->time),d.GetAllocator());
     _l.AddMember("updateTime",rapidjson::Value().SetUint64(_status->timer.timegap()),d.GetAllocator());

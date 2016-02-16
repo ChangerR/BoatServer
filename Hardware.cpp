@@ -60,7 +60,7 @@ void HWStatus::copyStatus(Status* s) {
     s->roll = roll;s->pitch = pitch;
     s->yaw = yaw;
     s->longitude = longitude;s->latitude = latitude;
-    s->height = height;s->speed = speed;
+    s->speed = speed;
     s->time = time;
     s->isUpdated = true;
 }
