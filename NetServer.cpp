@@ -45,12 +45,12 @@ bool NetServer::init() {
         _addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
         if((_serverSocket = socket(AF_INET,SOCK_DGRAM,0)) < 0) {
-            printf("Init Socker Error,please check\n");
+            printf("***ERROR*** Init Socker Error,please check\n");
             break;
         }
 
         if(bind(_serverSocket,(struct sockaddr*)&_addr,sizeof(_addr)) < 0) {
-            printf("Bind socker Error,please check\n");
+            printf("***ERROR*** Bind socker Error,please check\n");
             break;
         }
 
@@ -184,7 +184,7 @@ bool NetServer::handleServerMessage() {
                 case '2':
                     {
                         Client* c = findClient(clientaddr);
-                        printf("Server Recv Cmd:%s\n",_buffer + 4);
+                        //printf("Server Recv Cmd:%s\n",_buffer + 4);
 						if(_pilot)
 							_pilot->pushControl(c->_uid,_buffer + 4);
                         c->_time = 60;
@@ -194,7 +194,7 @@ bool NetServer::handleServerMessage() {
                     {
                         Client* c = findClient(clientaddr);
                         c->_time = 60;
-                        printf("Reset client uid=%d\n",c->_uid);
+                        //printf("Reset client uid=%d\n",c->_uid);
                     }
                     break;
                 case '3':
@@ -211,7 +211,7 @@ bool NetServer::handleServerMessage() {
                         if(findControlFileInList(_buffer + 4) == true) {
                             std::string filename = _filepath + "/" + (_buffer + 4);
                             _pilot->setAutoControlScript(filename.c_str());
-                            printf("set autoControl script %s\n",filename.c_str());
+                            printf("***INFO*** Set autoControl script %s\n",filename.c_str());
                         }
                     }
                     break;
@@ -223,11 +223,11 @@ bool NetServer::handleServerMessage() {
 					}
                     break;
                 default:
-                    printf("We do not support this cmd:%s\n",_buffer);
+                    printf("***ERROR*** We do not support this cmd:%s\n",_buffer);
                     break;
             }
         } else {
-            printf("Recv UNKOWN Message Format\n");
+            printf("***ERROR*** Recv UNKOWN Message Format\n");
         }
     }
 
@@ -238,7 +238,7 @@ bool NetServer::handleServerMessage() {
                 Client* c = it->second;
 				if(_pilot != NULL)
 					_pilot->cancelControl(c->_uid);
-                printf("Client End Control:UID=%d\n",c->_uid);
+                //printf("Client End Control:UID=%d\n",c->_uid);
                 delete c;
                 _clients.erase(it++);
             } else {
@@ -259,5 +259,5 @@ void NetServer::NetFileRecv(const char* filename,void* user) {
 	NetServer* server = (NetServer*)user;
     if(!strcmp(findFileExt(filename),"lua"))
 	   server->_controlsFileList.push_back(std::string(filename));
-    printf("recv file %s\n",filename);
+    printf("***INFO*** Recv File %s\n",filename);
 }

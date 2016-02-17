@@ -38,6 +38,21 @@ TestHardware:TestHardware.o $(OBJS)
 TestMD5:TestMd5.o MD5.o
 	g++ -o $@ TestMd5.o MD5.o $(LKFLAG) $(LKLIBA)
 
+install:boat boat.config
+	install -d /usr/local/boat
+	install -m 755 boat /usr/local/boat
+	install -m 666 boat.config /usr/local/boat
+	install -d /usr/local/boat/workdir
+	install -m 666 workdir/*.lua /usr/local/boat/workdir
+	install -m 777 boat.service /usr/local/boat
+	ln -s /usr/local/boat/boat.service /etc/init.d/boat
+	update-rc.d boat defaults 90
+
+uninstall:
+	update-rc.d -f boat remove
+	-rm /etc/init.d/boat
+	-rm -r /usr/local/boat
+
 %.o:%.c
 	gcc $(CFLAG) -o $@ $<
 

@@ -27,7 +27,7 @@ extern int optind, opterr, optopt;
 ServerConfig g_serverConfig;
 
 void signal_handler(int sig) {
-    printf("Ctrl-C signal\n");
+    printf("***END*** Ctrl-C signal\n");
     g_running = false;
 }
 
@@ -79,7 +79,7 @@ int main(int args,char** argv) {
 	int ch;
 
     if(signal(SIGINT, signal_handler) == SIG_ERR) {
-        printf("could not register signal handler\n");
+        printf("***ERROR*** could not register signal handler\n");
         exit(1);
     }
 
@@ -100,51 +100,51 @@ int main(int args,char** argv) {
 
 	 do {
         if(!g_serverConfig.init(configFile)||!g_serverConfig.parseData()) {
-            printf("Open Or parse config error,please check\n");
+            printf("***ERROR*** Open Or parse config error,please check\n");
             break;
         }
 
         if(!g_serverConfig.getString("hardware_com1",serial1)) {
-            printf("do not have serial port 1 info\n");
+            printf("***ERROR*** Do not have serial port 1 info\n");
             break;
         }
 
 		if(!g_serverConfig.getString("hardware_com2",serial2)) {
-            printf("do not have serial port 2 info\n");
+            printf("***ERROR*** Do not have serial port 2 info\n");
             break;
         }
 
 		if(!g_serverConfig.getString("autocontrol_lua",autocontrol_script)) {
-            printf("do not have auto control script\n");
+            printf("***ERROR*** Do not have auto control script\n");
             break;
         }
 
 		if(!g_serverConfig.getString("script_path",script_path)) {
-            printf("do not have script recv path\n");
+            printf("***ERROR*** Do not have script recv path\n");
             break;
         }
 
 		if(!g_serverConfig.getInt("server_port",&port)) {
-            printf("do not have script port\n");
+            printf("***ERROR*** Do not have script port\n");
             break;
         }
 
 		if(is_dir_exist(script_path) != 0) {
-			printf("Do not have this work dir %s\n",script_path);
+			printf("***ERROR*** Do not have this work dir %s\n",script_path);
 			break;
 		}
 
 		std::string filename = std::string(script_path) + "/" + autocontrol_script;
 
 		if(is_file_exist(filename.c_str()) != 0) {
-			printf("Do not have auto run script %s\n",filename.c_str());
+			printf("***ERROR*** Do not have auto run script %s\n",filename.c_str());
 			break;
 		}
 
 		l_hardware = new Hardware(serial1,serial2);
 
 		if(l_hardware->openHardware() == false) {
-			printf("hardware init failed\n");
+			printf("***ERROR*** Hardware init failed\n");
 			break;
 		}
 
@@ -153,7 +153,7 @@ int main(int args,char** argv) {
 		l_server = new NetServer(port,l_pilot,script_path);
 
 		if(l_server->init() == false) {
-			printf("server init failed\n");
+			printf("***ERROR*** Net Server init failed\n");
 			break;
 		}
 
@@ -161,7 +161,7 @@ int main(int args,char** argv) {
 		l_data.server = l_server;
 
 		if (0 != pthread_create(&l_worker, NULL, worker_thread, (void*)&l_data)) {
-			printf("create another thread failed\n");
+			printf("***ERROR*** Create another thread failed\n");
 			break;
 		}
 

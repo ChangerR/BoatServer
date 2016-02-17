@@ -43,7 +43,7 @@ bool AutoController::init(const char* script,Pilot* pilot) {
         luaL_openlib(_L,"controller",_controller,0);
 
         if(luaL_dofile(_L,script)) {
-            printf("---Compile Script---Error:%s\n",lua_tostring(_L,-1));
+            printf("***ERROR*** Compile Script Error:%s\n",lua_tostring(_L,-1));
             lua_pop(_L,1);
             lua_close(_L);
             _L = NULL;
@@ -76,7 +76,7 @@ int AutoController::runController() {
 
     lua_getglobal(_L,"loop");
     if(lua_pcall(_L,0,1,0)) {
-        printf("Run Script Error=%s\n",lua_tostring(_L,-1));
+        printf("***ERROR*** Run Script Error=%s\n",lua_tostring(_L,-1));
         lua_pop(_L,1);
         return -1;
     }

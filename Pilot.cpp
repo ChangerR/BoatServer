@@ -80,7 +80,7 @@ bool Pilot::needBroadcast(int* id,char* buf,int* len) {
 
 void Pilot::setAutoControlScript(const char* script) {
 	_autoScript = script;
-    printf("Change AutoControl script to %s\n",script);
+    printf("***INFO*** Change AutoControl script to %s\n",script);
 }
 
 void Pilot::handleControl() {
@@ -203,20 +203,20 @@ void Pilot::manualControl(rapidjson::Document* doc,int uid) {
     if(pArgs.IsArray() == false)return;
 
     if(!strcmp("cancelControl",(*doc)["name"].GetString())) {
-        printf("Cancel uid=%d Control\n",uid);
+        //printf("Cancel uid=%d Control\n",uid);
 		cancelIdControl(uid);
     } else if(pArgs[rapidjson::SizeType(0)].IsInt()) {
         int s = pArgs[rapidjson::SizeType(0)].GetInt();
         if(!strcmp("thro",(*doc)["name"].GetString())) {
-            printf("thro control power=%d\n",s);
+            //printf("thro control power=%d\n",s);
 			sendThruster(uid,1,s);
 			sendThruster(uid,2,s);
         } else if(!strcmp("yaw",(*doc)["name"].GetString())) {
-            printf("yaw control power=%d\n",s);
+            //printf("yaw control power=%d\n",s);
 			sendThruster(uid,1,s);
 			sendThruster(uid,2,-s);
         } else if(!strcmp("led",(*doc)["name"].GetString())&&pArgs[rapidjson::SizeType(1)].IsInt()) {
-            printf("led control id=%d power=%d\n",s,pArgs[rapidjson::SizeType(1)].GetInt());
+            //printf("led control id=%d power=%d\n",s,pArgs[rapidjson::SizeType(1)].GetInt());
             sendLED(uid,s,pArgs[rapidjson::SizeType(1)].GetInt());
         }
     }

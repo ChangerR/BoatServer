@@ -117,12 +117,12 @@ bool Hardware::openHardware() {
 
     do {
         if(_serial1->touchForCDCReset() == false||_serial1->begin(_B115200) == false) {
-            printf("Serial 1 Open failed\n");
+            printf("***INFO*** Serial 1 Open failed\n");
             break;
         }
 	usleep(500);
         if(_serial2->touchForCDCReset() == false||_serial2->begin(_B115200) == false) {
-            printf("Serial 2 Open failed\n");
+            printf("***INFO*** Serial 2 Open failed\n");
             break;
         }
 	usleep(500);
@@ -170,35 +170,35 @@ int Hardware::processHardwareMsg() {
         {
             if(_Version1 == 0) {
                 if(_serial1->available()&&_serial1->readline(buf,256) > 0) {
-                    printf("Recv Firmware Version1:%s\n",buf);
+                    printf("***INFO*** Recv Firmware Version1:%s\n",buf);
                     if(!strncmp(buf,"FWVersion(",10)&&(buf[10] == 'A' || buf[10] == 'B')){
                         _Version1 = parseVersion(buf + 11);
 
                         if(_Version1) {
                             _Version1 = _Version1 | ((buf[10] - 'A') << 15);
                         }
-                        printf("parse Version 1 success: version1=%d\n",_Version1);
+                        printf("***INFO*** Parse Version 1 success: version1=%d\n",_Version1);
                     }
                 }else if(_sendTimer1.elapsed(1000)){
                     _serial1->write("Firmware()\n",11);
-                    printf("Send Firmware 1\n");
+                    //printf("Send Firmware 1\n");
                 }
             }
 
             if(_Version2 == 0) {
                 if(_serial2->available()&&_serial2->readline(buf,256) > 0) {
-                    printf("Recv Firmware Version2:%s\n",buf);
+                    printf("***INFO*** Recv Firmware Version2:%s\n",buf);
                     if(!strncmp(buf,"FWVersion(",10)&&(buf[10] == 'A' || buf[10] == 'B')){
                         _Version2 = parseVersion(buf + 11);
 
                         if(_Version2) {
                             _Version2 = _Version2 | ((buf[10] - 'A') << 15);
                         }
-                        printf("parse Version 2 success: version2=%d\n",_Version2);
+                        printf("***INFO*** Parse Version 2 success: version2=%d\n",_Version2);
                     }
                 }else if(_sendTimer2.elapsed(1000)){
                     _serial2->write("Firmware()\n",11);
-                    printf("Send Firmware 2\n");
+                    //printf("Send Firmware 2\n");
                 }
             }
 
@@ -217,7 +217,7 @@ int Hardware::processHardwareMsg() {
                     }
                     _state = HARDWARE_RUNNING;
                 }else {
-                    printf("Error Hardware,Maybe Hardware1 same as Hardware2\n");
+                    printf("***ERROR*** Hardware,Maybe Hardware1 same as Hardware2\n");
                     _state = HARDWARE_ERROR;
                 }
             }
@@ -327,7 +327,7 @@ int Hardware::IMURead(int args,char (*argv)[MAX_CMD_ARGUMENT_LEN],void* user) {
 
 int Hardware::LogRead(int args,char (*argv)[MAX_CMD_ARGUMENT_LEN],void* user) {
     if(args == 1) {
-        printf("Serial Log===>%s\n",argv[0]);
+        printf("***LOG*** Serial:%s\n",argv[0]);
     }
     return 0;
 }

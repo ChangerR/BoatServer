@@ -155,7 +155,7 @@ int FileTransferTask::processTask(NetServer* server) {
 		if(!MD5::md5sum(filename.c_str(),out))return -2;
 		for(int index = 0;index < 16; index++) {
 			if(out[index] != _md5[index]) {
-				printf("Md5 verify Error,please check!\n");
+				printf("***ERROR*** Md5 verify Error,please check!\n");
 				return -2;
 			}
 		}
@@ -183,7 +183,7 @@ void FileTransferTask::handlePacket(UDPFilePacket* fpacket) {
 		fseek(_file,packet->filepos,SEEK_SET);
 		fwrite(data,packet->pklen,1,_file);
 	}else {
-        printf("Error file do not opened\n");
+        printf("***ERROR*** Error file do not opened\n");
     }
 	_bit->setBit(packet->packetid);
 	_timeout.reset();
@@ -233,7 +233,7 @@ int UDPFileTransfer::processTasks(NetServer* server) {
 				}
 			}
 		}else {
-			printf("Error:recv error file packet\n");
+			printf("***Error*** Recv error file packet\n");
 		}
 
 		delete packet;
@@ -247,7 +247,7 @@ int UDPFileTransfer::processTasks(NetServer* server) {
 			if(iret == 1&&_callback != NULL)
 				_callback(task->_filename,_user);
 
-			printf("Remove task transfer filename=%s ret=%d\n",task->_filename,iret);
+			printf("***ERROR*** Remove task transfer filename=%s ret=%d\n",task->_filename,iret);
 			delete task;
 			_tasks.erase(p);
 		}
