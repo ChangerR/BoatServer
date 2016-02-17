@@ -21,7 +21,10 @@ class FileUploadTask:
 		self.file.seek(0,0)
 		self.count = (self.length + 2047) / 2048
 		self.id = 0
-		self.filename = str(filename.split("/")[-1])
+		if platform.system() == 'Windows':
+			self.filename = str(filename.split("\\")[-1])
+		else :
+			self.filename = str(filename.split("/")[-1])
 		self.pos = 0
 
 	def processTask(self,client):
@@ -169,7 +172,6 @@ class PaintWindow(wx.Window):
 			self.lc.Append((u'yaw',0))
 			self.lc.Append((u"经度",0))
 			self.lc.Append((u"纬度",0))
-			self.lc.Append((u"高度",0))
 			self.lc.Append((u"速度",0))
 			self.lc.Append((u"时间",0))
 			self.lc.Append((u"更新时间",0))
@@ -196,7 +198,7 @@ class PaintWindow(wx.Window):
 			self.Bind(wx.EVT_CHOICE,self.onStateChoice,self.listState)
 			self.Bind(wx.EVT_KEY_DOWN,self.onKeyDown,self)
 			self.Bind(wx.EVT_KEY_UP,self.onKeyUp,self)
-			self.client = BoatClient("192.168.1.106",6666,self)
+			self.client = BoatClient("192.168.1.100",6666,self)
 			self.control_list = []
 
 		def onSetControlLua(self,event):
@@ -214,19 +216,18 @@ class PaintWindow(wx.Window):
 			self.lc.SetStringItem(2,1,str(status[u"yaw"]))
 			self.lc.SetStringItem(3,1,str(status[u"longitude"]))
 			self.lc.SetStringItem(4,1,str(status[u"latitude"]))
-			self.lc.SetStringItem(5,1,str(status[u"height"]))
-			self.lc.SetStringItem(6,1,str(status[u"speed"]))
-			self.lc.SetStringItem(7,1,str(status[u"time"]))
-			self.lc.SetStringItem(8,1,str(status[u"updateTime"]))
-			self.lc.SetStringItem(9,1,self.listState.GetItems()[status[u"controlState"]])
-			self.lc.SetStringItem(10,1,str(status[u"led1"]))
-			self.lc.SetStringItem(11,1,str(status[u"led2"]))
-			self.lc.SetStringItem(12,1,str(status[u"thrust1"]))
-			self.lc.SetStringItem(13,1,str(status[u"thrust2"]))
-			self.lc.SetStringItem(14,1,str(status[u"motor1"]))
-			self.lc.SetStringItem(15,1,str(status[u"motor2"]))
-			self.lc.SetStringItem(16,1,str(status[u"motor3"]))
-			self.lc.SetStringItem(17,1,str(status[u"motor4"]))
+			self.lc.SetStringItem(5,1,str(status[u"speed"]))
+			self.lc.SetStringItem(6,1,str(status[u"time"]))
+			self.lc.SetStringItem(7,1,str(status[u"updateTime"]))
+			self.lc.SetStringItem(8,1,self.listState.GetItems()[status[u"controlState"]])
+			self.lc.SetStringItem(9,1,str(status[u"led1"]))
+			self.lc.SetStringItem(10,1,str(status[u"led2"]))
+			self.lc.SetStringItem(11,1,str(status[u"thrust1"]))
+			self.lc.SetStringItem(12,1,str(status[u"thrust2"]))
+			self.lc.SetStringItem(13,1,str(status[u"motor1"]))
+			self.lc.SetStringItem(14,1,str(status[u"motor2"]))
+			self.lc.SetStringItem(15,1,str(status[u"motor3"]))
+			self.lc.SetStringItem(16,1,str(status[u"motor4"]))
 			self.laser1.SetValue(str(status[u'laser1']))
 			self.laser2.SetValue(str(status[u'laser2']))
 			self.laser3.SetValue(str(status[u'laser3']))
