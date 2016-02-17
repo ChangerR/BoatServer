@@ -76,7 +76,7 @@ int main(int args,char** argv) {
 	private_data l_data;
 	int port = 0;
 	pthread_t l_worker;
-	char ch;
+	int ch;
 
     if(signal(SIGINT, signal_handler) == SIG_ERR) {
         printf("could not register signal handler\n");

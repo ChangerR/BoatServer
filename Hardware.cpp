@@ -1,6 +1,7 @@
 #include "Hardware.h"
 #include <string.h>
 #include "util.h"
+#include <unistd.h>
 
 inline unsigned short parseVersion(const char* version) {
     unsigned short ver = 0,ver2 = 0;
@@ -17,7 +18,7 @@ inline unsigned short parseVersion(const char* version) {
 }
 
 void HWStatus::setLaserA(int l1,int l2) {
-    laser1 = l1;
+    laser1 = l2;
     laser2 = l1;
     update_flag |= LASERA_UPDATE;
 }
@@ -115,15 +116,16 @@ bool Hardware::openHardware() {
     bool ret = false;
 
     do {
-        if(_serial1->touchForCDCReset() == false||_serial1->begin(_B19200) == false) {
+        if(_serial1->touchForCDCReset() == false||_serial1->begin(_B115200) == false) {
             printf("Serial 1 Open failed\n");
             break;
         }
-
-        if(_serial2->touchForCDCReset() == false||_serial2->begin(_B19200) == false) {
+	usleep(500);
+        if(_serial2->touchForCDCReset() == false||_serial2->begin(_B115200) == false) {
             printf("Serial 2 Open failed\n");
             break;
         }
+	usleep(500);
         ret = true;
         _state = HARDWARE_OPENING;
     }while(0);
