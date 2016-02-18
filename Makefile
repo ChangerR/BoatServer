@@ -1,5 +1,6 @@
 CFLAG = -c -O0 -g  -I json
 LKFLAG =
+SRCDIR = $(shell pwd)
 
 OBJS = serial-linux.o ServerConfig.o Command.o Hardware.o Timer.o NetServer.o Pilot.o UDPFileTransfer.o \
 		AutoController.o MD5.o
@@ -10,8 +11,7 @@ TARGET = boat
 
 LUAJITHEADER = lauxlib.h lua.h lua.hpp luaconf.h luajit.h lualib.h
 LUAJITLIB = libluajit.a
-
-
+	
 $(TARGET): $(LUAJITHEADER) $(OBJS) main.o $(LUAJITLIB)
 	g++ -o $@ $(OBJS) main.o $(LKFLAG) $(LKLIBA) -lluajit -ldl -lpthread
 
@@ -25,7 +25,9 @@ $(LUAJITHEADER):
 AutoController.o:$(LUAJITHEADER) AutoController.cpp
 	g++ $(CFLAG) -o $@ AutoController.cpp
 
-
+logger.o: logger.cpp 
+	g++ $(CFLAG) -o $@ logger.cpp
+	
 TestSerial:TestSerial.o $(OBJS)
 	g++ -o $@ $(OBJS) TestSerial.o $(LKFLAG) $(LKLIBA)
 
@@ -60,6 +62,8 @@ uninstall:
 	g++ $(CFLAG) -o $@ $<
 
 clean:
+	-rm -r glog/build
+	cd glog&&make distclean
 	-rm *.o
 	-rm $(TARGET) $(LUAJITLIB) $(LUAJITHEADER)
 	cd luajit&&make clean
