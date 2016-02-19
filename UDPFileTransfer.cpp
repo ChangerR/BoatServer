@@ -3,6 +3,7 @@
 #include "Timer.h"
 #include "MD5.h"
 #include "NetServer.h"
+#include "logger.h"
 
 #define UDPFILEMAGICBEGIN (('B'<<24) + ('S'<<16) + ('T'<<8) + ('B'))
 #define UDPFILEMAGICLOOP  (('B'<<24) + ('S'<<16) + ('T'<<8) + ('L'))
@@ -51,30 +52,30 @@ public:
 	}
 
     void debug() {
-        printf("Magic %c%c%c%c and packet length=%d\n",_buffer[0],_buffer[1],_buffer[2],_buffer[3],_length);
+        Logger::getInstance()->info(0,"[Debug] Magic %c%c%c%c and packet length=%d\n",_buffer[0],_buffer[1],_buffer[2],_buffer[3],_length);
         if(getMagic() == UDPFILEMAGICBEGIN) {
             UDPTSPacketBegin* begin = (UDPTSPacketBegin*)_buffer;
             const unsigned char* out = (unsigned char*)begin->md5;
-            printf("---Debug Begin----\n");
-            printf("recv file package begin\n");
-            printf("packet count=%d\n",begin->packet_count);
-            printf("md5=%X%X%X%X%X%X%X%X%X%X%X%X%X%X%X%X\n",out[0],out[1],out[2],out[3]
+            Logger::getInstance()->info(0,"[Debug] ---Debug Begin----\n");
+            Logger::getInstance()->info(0,"[Debug] recv file package begin\n");
+            Logger::getInstance()->info(0,"[Debug] packet count=%d\n",begin->packet_count);
+            Logger::getInstance()->info(0,"[Debug] md5=%X%X%X%X%X%X%X%X%X%X%X%X%X%X%X%X\n",out[0],out[1],out[2],out[3]
         													,out[4],out[5],out[6],out[7]
         													,out[8],out[9],out[10],out[11]
         												    ,out[12],out[13],out[14],out[15]);
-            printf("recv filename=%s\n",begin->filename);
-            printf("---end---\n");
+            Logger::getInstance()->info(0,"[Debug] recv filename=%s\n",begin->filename);
+            Logger::getInstance()->info(0,"[Debug] ---end---\n");
         }else if(getMagic() == UDPFILEMAGICLOOP) {
             UDPTSPacket* packet = (UDPTSPacket*)_buffer;
-            printf("---Debug loop----\n");
-            printf("recv file package loop\n");
-            printf("packetid=%d\n",packet->packetid);
-            printf("filepos=%d\n",packet->filepos);
-            printf("packet length=%d\n",packet->pklen);
-            printf("packet filename=%s\n",packet->filename);
-            printf("---end---\n");
+            Logger::getInstance()->info(0,"[Debug] ---Debug loop----\n");
+            Logger::getInstance()->info(0,"[Debug] recv file package loop\n");
+            Logger::getInstance()->info(0,"[Debug] packetid=%d\n",packet->packetid);
+            Logger::getInstance()->info(0,"[Debug] filepos=%d\n",packet->filepos);
+            Logger::getInstance()->info(0,"[Debug] packet length=%d\n",packet->pklen);
+            Logger::getInstance()->info(0,"[Debug] packet filename=%s\n",packet->filename);
+            Logger::getInstance()->info(0,"[Debug] ---end---\n");
         }else{
-            printf("recv error packet\n");
+            Logger::getInstance()->error("[UDPFileTransfer] recv error packet\n");
         }
     }
 public:
@@ -155,7 +156,7 @@ int FileTransferTask::processTask(NetServer* server) {
 		if(!MD5::md5sum(filename.c_str(),out))return -2;
 		for(int index = 0;index < 16; index++) {
 			if(out[index] != _md5[index]) {
-				printf("***ERROR*** Md5 verify Error,please check!\n");
+				Logger::getInstance()->error("[UDPFileTransfer] Md5 verify Error,please check!\n");
 				return -2;
 			}
 		}
@@ -183,7 +184,7 @@ void FileTransferTask::handlePacket(UDPFilePacket* fpacket) {
 		fseek(_file,packet->filepos,SEEK_SET);
 		fwrite(data,packet->pklen,1,_file);
 	}else {
-        printf("***ERROR*** Error file do not opened\n");
+        Logger::getInstance()->error("[UDPFileTransfer] Error file do not opened");
     }
 	_bit->setBit(packet->packetid);
 	_timeout.reset();
@@ -233,7 +234,7 @@ int UDPFileTransfer::processTasks(NetServer* server) {
 				}
 			}
 		}else {
-			printf("***Error*** Recv error file packet\n");
+			Logger::getInstance()->error("[UDPFileTransfer] Recv error file packet.");
 		}
 
 		delete packet;
@@ -247,7 +248,7 @@ int UDPFileTransfer::processTasks(NetServer* server) {
 			if(iret == 1&&_callback != NULL)
 				_callback(task->_filename,_user);
 
-			printf("***ERROR*** Remove task transfer filename=%s ret=%d\n",task->_filename,iret);
+			Logger::getInstance()->info(5,"[UDPFileTransfer] Remove task transfer filename=%s ret=%d",task->_filename,iret);
 			delete task;
 			_tasks.erase(p);
 		}

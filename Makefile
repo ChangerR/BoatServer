@@ -3,7 +3,7 @@ LKFLAG =
 SRCDIR = $(shell pwd)
 
 OBJS = serial-linux.o ServerConfig.o Command.o Hardware.o Timer.o NetServer.o Pilot.o UDPFileTransfer.o \
-		AutoController.o MD5.o
+		AutoController.o MD5.o logger.o
 
 LKLIBA = -L .
 
@@ -62,8 +62,6 @@ uninstall:
 	g++ $(CFLAG) -o $@ $<
 
 clean:
-	-rm -r glog/build
-	cd glog&&make distclean
 	-rm *.o
 	-rm $(TARGET) $(LUAJITLIB) $(LUAJITHEADER)
 	cd luajit&&make clean

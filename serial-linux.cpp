@@ -12,6 +12,8 @@
 #include <pthread.h>
 #include <stdarg.h>
 #include <sys/ioctl.h>
+#include "logger.h"
+#include <poll.h>
 
 static int getDCBBuadRate(BUADRATE b) {
 	int br = B115200;
@@ -50,14 +52,18 @@ Serial::~Serial() {
 	close();
 }
 
+bool Serial::isAlive() {
+	return _running;
+}
+
 bool Serial::begin(BUADRATE b) {
 	struct termios _option;
 
-	LOGOUT("***INFO*** Open Serial Port:%s\n",_port);
+	Logger::getInstance()->info(5,"[Serial] Open Serial Port:%s",_port);
 	_serial_fd = open(_port,O_RDWR|O_NOCTTY|O_NDELAY);
 
 	if(_serial_fd < 0) {
-		LOGOUT("***ERROR*** Open Serial Port Failed%d\n",_serial_fd);
+		Logger::getInstance()->error("[Serial] Open Serial Port Failed%d",_serial_fd);
 		return false;
 	}
 
@@ -80,7 +86,7 @@ bool Serial::begin(BUADRATE b) {
 	tcflush(_serial_fd,TCIOFLUSH);
 
 	if(tcsetattr(_serial_fd, TCSANOW, &_option) != 0) {
-		LOGOUT("***ERROR*** setup serial error\n");
+		Logger::getInstance()->error("[Serial] setup serial error\n");
 		return false;
 	}
 
@@ -116,10 +122,10 @@ int Serial::read() {
 	//	printf("serial hardware read enter\n");
 	if((len = ::read(_serial_fd,_buffer + _wpos,nRead)) < 0 ) {
 		if(errno != EAGAIN)
-			printf("***ERROR*** when read serial occur error errno: %d\n",errno);
+			Logger::getInstance()->error("[Serial] when read serial occur error errno: %d",errno);
 		return -1;
 	}
-	//	printf("read serial data len:%d \n",len);
+	//printf("read serial data len:%d \n",len);
 	_wpos += len;
 	//sched_yield();
 	_buffer[_wpos] = 0;
@@ -140,19 +146,40 @@ int Serial::read(char* buf,int len) {
 }
 
 int Serial::available() {
-	fd_set fds;
-	struct timeval timeout = {0,0};
-
+	//fix #1 replace select to poll which can dectect device error
+	//fd_set fds;
+	struct pollfd events[1] = {0};
+	//struct timeval timeout = {0,0};
+	int ret = 0;
 	if(!_running)
-		return -1;
-
-	FD_ZERO(&fds);
-	FD_SET(_serial_fd,&fds);
-
-	if(select(_serial_fd + 1,&fds,NULL,NULL,&timeout) > 0) {
-		this->read();
+		return -2;
+	
+	//FD_ZERO(&fds);
+	//FD_SET(_serial_fd,&fds);
+	events[0].fd = _serial_fd;
+	events[0].events = POLLIN | POLLERR;
+	ret = poll((struct pollfd*)&events,1,0);
+	//ret = select(_serial_fd + 1,&fds,NULL,NULL,&timeout);
+	//if(ret > 0) {
+	//	this->read();
+	//}else 
+	if(ret < 0){
+		Logger::getInstance()->error("[Serial] Serial::available() epoll error,code=%d",ret);	
+		close();
+		return -2;
 	}
-
+   
+	if(ret != 0) {
+		if(events[0].revents & POLLERR) {
+			Logger::getInstance()->warning("[Serial] Device occur error,Maybe Device is outline!");
+			close();
+			return -1;
+		}	
+		if(events[0].revents & POLLIN) {
+			this->read();
+		}
+	}
+	
 	return _wpos;
 }
 
@@ -180,7 +207,7 @@ int Serial::readline(char* buf,int maxlen) {
 		}
 		nRead += 1;
 
-		//LOGOUT("+++info+++ %d,%d\n",nRead,_wpos);
+		//Logger::getInstance()->error("+++info+++ %d,%d\n",nRead,_wpos);
 		_wpos -= nRead;
 		copy_iner_buffer(_buffer,nRead,0,_wpos);
 		//fix serial port read error block
@@ -238,7 +265,7 @@ bool Serial::touchForCDCReset() {
 		return false;
 	int status;
 
-	LOGOUT("***INFO*** touchForCDCReset\n");
+	Logger::getInstance()->info(5,"[Serial] reset serial port");
 	ioctl(_serial_fd, TIOCMGET, &status);
 	status &= ~TIOCM_DTR;
 	ioctl(_serial_fd, TIOCMSET, &status);

@@ -1,6 +1,7 @@
 #include "Pilot.h"
 #include "json/writer.h"
 #include "json/stringbuffer.h"
+#include "logger.h"
 
 Pilot::Pilot(Hardware* h,const char* script) {
     _hardware = h;
@@ -80,7 +81,7 @@ bool Pilot::needBroadcast(int* id,char* buf,int* len) {
 
 void Pilot::setAutoControlScript(const char* script) {
 	_autoScript = script;
-    printf("***INFO*** Change AutoControl script to %s\n",script);
+   	Logger::getInstance()->info(5,"[Pilot] Change AutoControl script to %s",script);
 }
 
 void Pilot::handleControl() {

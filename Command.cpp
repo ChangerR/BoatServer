@@ -48,6 +48,13 @@ Command::~Command() {
 	_event->release();
 }
 
+void Command::reset() {
+	args = 0;
+	cmd_count = 0;
+	byteOffset = 0;
+	parseState = PARSE_COMMAND;
+}
+
 bool Command::parse(const char c) {
 
 	if(byteOffset >= MAX_CMD_ARGUMENT_LEN) {

@@ -24,6 +24,8 @@ public:
 	int println(const char* s,...);
 
 	bool touchForCDCReset();
+
+	bool isAlive();
 private:
 	int read();
 	void* _user;

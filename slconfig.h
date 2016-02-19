@@ -54,4 +54,6 @@ typedef int SOCKET;
 
 class ServerConfig;
 extern ServerConfig g_serverConfig;
+
+#define BOATSERVERVER "Boat Server V1.0 @ ABR InnoVation Corp"
 #endif

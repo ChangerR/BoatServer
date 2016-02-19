@@ -101,6 +101,8 @@ public:
 private:
     void flushSendList();
 
+	int verifyFWVersion(Serial* s,Timer* t);
+
     static int LaserARead(int,char (*)[MAX_CMD_ARGUMENT_LEN],void*);
     static int LaserBRead(int,char (*)[MAX_CMD_ARGUMENT_LEN],void*);
     static int GPSRead(int,char (*)[MAX_CMD_ARGUMENT_LEN],void*);

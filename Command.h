@@ -38,6 +38,8 @@ public:
 
 	void parseWithFire(const char*);
 
+	void reset();
+
 public:
 	char argv[MAX_CMD_ARGS][MAX_CMD_ARGUMENT_LEN];
 	int args;

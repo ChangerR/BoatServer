@@ -1,6 +1,7 @@
 #include "ServerConfig.h"
 #include <string.h>
 #include <stdio.h>
+#include "logger.h"
 
 char ServerConfig::default_config[] = "#SSLSERVER CONFIG FILE\n" \
 								"#BEIGN\n" \
@@ -314,11 +315,11 @@ void ServerConfig::setFloat(const char* p ,float data) {
 
 void ServerConfig::debug()
 {
-	LOGOUT("***DEBUG*** Read Config File\n");
+	Logger::getInstance()->info(1,"[Config] Read Config File");
 	for (list<_CONFIG>::node *p = _configs.begin(); p != _configs.end(); p = p->next) {
-		LOGOUT("***DEBUG*** %s=%s\n", p->element.name, p->element.value);
+		Logger::getInstance()->info(1,"[Config] %s=%s", p->element.name, p->element.value);
 	}
-	LOGOUT("***DEBUG*** Config File End\n");
+	Logger::getInstance()->info(1,"[Config] Config File End");
 }
 
 bool ServerConfig::getMacAddress(const char* p,unsigned char* data)

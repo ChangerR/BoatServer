@@ -9,6 +9,7 @@
 #include "json/document.h"
 #include <dirent.h>
 #include "util.h"
+#include "logger.h"
 
 #define NETSERVER_BUFFER_LEN 4094
 
@@ -45,12 +46,12 @@ bool NetServer::init() {
         _addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
         if((_serverSocket = socket(AF_INET,SOCK_DGRAM,0)) < 0) {
-            printf("***ERROR*** Init Socker Error,please check\n");
+            Logger::getInstance()->error("[NetServer] Init Socker Error,please check");
             break;
         }
 
         if(bind(_serverSocket,(struct sockaddr*)&_addr,sizeof(_addr)) < 0) {
-            printf("***ERROR*** Bind socker Error,please check\n");
+            Logger::getInstance()->error("[NetServer] Bind socker Error,please check");
             break;
         }
 
@@ -89,7 +90,7 @@ NetServer::Client* NetServer::findClient(struct sockaddr_in& c) {
 }
 
 NetServer::Client* NetServer::findClinet(int uid) {
-    Client* c= NULL;
+    Client* c = NULL;
 
     for(std::map<unsigned long,Client*>::iterator it = _clients.begin(); it != _clients.end();++it) {
         if(it->second->_uid == uid) {
@@ -137,7 +138,7 @@ void NetServer::listControlFiles() {
     _controlsFileList.clear();
 
     if((p_dir = opendir(path)) == NULL) {
-        printf("Cannot opendir %s\n",path);
+        Logger::getInstance()->error("Cannot opendir %s",path);
         return;
     }
     while((p_dirent = readdir(p_dir))) {
@@ -184,7 +185,7 @@ bool NetServer::handleServerMessage() {
                 case '2':
                     {
                         Client* c = findClient(clientaddr);
-                        //printf("Server Recv Cmd:%s\n",_buffer + 4);
+                        Logger::getInstance()->info(1,"[NetServer] Recvive:%s\n",_buffer + 4);
 						if(_pilot)
 							_pilot->pushControl(c->_uid,_buffer + 4);
                         c->_time = 60;
@@ -194,7 +195,7 @@ bool NetServer::handleServerMessage() {
                     {
                         Client* c = findClient(clientaddr);
                         c->_time = 60;
-                        //printf("Reset client uid=%d\n",c->_uid);
+                        //Logger::getInstance()->error("Reset client uid=%d\n",c->_uid);
                     }
                     break;
                 case '3':
@@ -211,7 +212,7 @@ bool NetServer::handleServerMessage() {
                         if(findControlFileInList(_buffer + 4) == true) {
                             std::string filename = _filepath + "/" + (_buffer + 4);
                             _pilot->setAutoControlScript(filename.c_str());
-                            printf("***INFO*** Set autoControl script %s\n",filename.c_str());
+                            Logger::getInstance()->info(5,"[NetServer] Set autoControl script %s\n",filename.c_str());
                         }
                     }
                     break;
@@ -223,11 +224,11 @@ bool NetServer::handleServerMessage() {
 					}
                     break;
                 default:
-                    printf("***ERROR*** We do not support this cmd:%s\n",_buffer);
+                    Logger::getInstance()->error("[NetServer] We do not support this cmd:%s\n",_buffer);
                     break;
             }
         } else {
-            printf("***ERROR*** Recv UNKOWN Message Format\n");
+            Logger::getInstance()->error("[NetServer] Recv UNKOWN Message Format\n");
         }
     }
 
@@ -238,7 +239,7 @@ bool NetServer::handleServerMessage() {
                 Client* c = it->second;
 				if(_pilot != NULL)
 					_pilot->cancelControl(c->_uid);
-                //printf("Client End Control:UID=%d\n",c->_uid);
+                //Logger::getInstance()->error("Client End Control:UID=%d\n",c->_uid);
                 delete c;
                 _clients.erase(it++);
             } else {
@@ -257,7 +258,7 @@ bool NetServer::handleServerMessage() {
 
 void NetServer::NetFileRecv(const char* filename,void* user) {
 	NetServer* server = (NetServer*)user;
-    if(!strcmp(findFileExt(filename),"lua"))
+    if(!strcmp(findFileExt(filename),"lua")&&server->findControlFileInList(filename) == false)
 	   server->_controlsFileList.push_back(std::string(filename));
-    printf("***INFO*** Recv File %s\n",filename);
+    Logger::getInstance()->info(5,"[NetServer] Recv File %s\n",filename);
 }

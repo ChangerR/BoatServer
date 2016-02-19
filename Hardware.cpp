@@ -2,6 +2,7 @@
 #include <string.h>
 #include "util.h"
 #include <unistd.h>
+#include "logger.h"
 
 inline unsigned short parseVersion(const char* version) {
     unsigned short ver = 0,ver2 = 0;
@@ -117,15 +118,15 @@ bool Hardware::openHardware() {
 
     do {
         if(_serial1->touchForCDCReset() == false||_serial1->begin(_B115200) == false) {
-            printf("***INFO*** Serial 1 Open failed\n");
+            Logger::getInstance()->error("[Hardware] Serial 1 Open failed,Boat Server will exit immediately!");
             break;
         }
-	usleep(500);
+		usleep(500);
         if(_serial2->touchForCDCReset() == false||_serial2->begin(_B115200) == false) {
-            printf("***INFO*** Serial 2 Open failed\n");
+            Logger::getInstance()->error("[Hardware] Serial 2 Open failed,Boat Server will exit immediately!");
             break;
         }
-	usleep(500);
+		usleep(500);
         ret = true;
         _state = HARDWARE_OPENING;
     }while(0);
@@ -151,10 +152,10 @@ void Hardware::flushSendList() {
     for(list<HWCommand*>::node *p = _sendList.begin();p != _sendList.end(); p = p->next) {
         HWCommand* cmd = p->element;
 
-        if(cmd->_device & 0x1) {
+        if(cmd->_device & 0x1 && _serial1->isAlive()) {
             _serial1->write(cmd->_cmd,cmd->_cmdLen);
         }
-        if(cmd->_device & 0x2) {
+        if(cmd->_device & 0x2 && _serial2->isAlive()) {
             _serial2->write(cmd->_cmd,cmd->_cmdLen);
         }
         delete cmd;
@@ -163,47 +164,41 @@ void Hardware::flushSendList() {
     pthread_mutex_unlock(&_lock);
 }
 
+int Hardware::verifyFWVersion(Serial* s,Timer* t) {
+	int version = 0;
+	char buf[256] = {0};	
+	if(s->available() > 0 && s->readline(buf,256) > 0) {
+		Logger::getInstance()->info(5,"[Hardware] Recv Firmware Version:%s",buf);
+		if(!strncmp(buf,"FWVersion(",10)&&(buf[10] == 'A' || buf[10] == 'B')){
+			version = parseVersion(buf + 11);
+
+			if(version) {
+				version = version | ((buf[10] - 'A') << 15);
+			}
+			Logger::getInstance()->info(5,"[Hardware] Parse Version success: version=%d",version);
+		}
+	}else if(t->elapsed(1000)){
+		s->write("Firmware()\n",11);
+	}
+	
+	return version;
+}
+
 int Hardware::processHardwareMsg() {
     char buf[256] = {0};
     switch (_state) {
         case HARDWARE_OPENING:
         {
             if(_Version1 == 0) {
-                if(_serial1->available()&&_serial1->readline(buf,256) > 0) {
-                    printf("***INFO*** Recv Firmware Version1:%s\n",buf);
-                    if(!strncmp(buf,"FWVersion(",10)&&(buf[10] == 'A' || buf[10] == 'B')){
-                        _Version1 = parseVersion(buf + 11);
-
-                        if(_Version1) {
-                            _Version1 = _Version1 | ((buf[10] - 'A') << 15);
-                        }
-                        printf("***INFO*** Parse Version 1 success: version1=%d\n",_Version1);
-                    }
-                }else if(_sendTimer1.elapsed(1000)){
-                    _serial1->write("Firmware()\n",11);
-                    //printf("Send Firmware 1\n");
-                }
-            }
+				_Version1 = verifyFWVersion(_serial1,&_sendTimer1);               
+			}
 
             if(_Version2 == 0) {
-                if(_serial2->available()&&_serial2->readline(buf,256) > 0) {
-                    printf("***INFO*** Recv Firmware Version2:%s\n",buf);
-                    if(!strncmp(buf,"FWVersion(",10)&&(buf[10] == 'A' || buf[10] == 'B')){
-                        _Version2 = parseVersion(buf + 11);
-
-                        if(_Version2) {
-                            _Version2 = _Version2 | ((buf[10] - 'A') << 15);
-                        }
-                        printf("***INFO*** Parse Version 2 success: version2=%d\n",_Version2);
-                    }
-                }else if(_sendTimer2.elapsed(1000)){
-                    _serial2->write("Firmware()\n",11);
-                    //printf("Send Firmware 2\n");
-                }
-            }
+				_Version2 = verifyFWVersion(_serial2,&_sendTimer2);                
+			}
 
             if(_Version1 != 0 && _Version2 != 0) {
-                //printf("Parse Hardware version success version1=%d version2=%d\n",_Version1,_Version2);
+                //Logger::getInstance()->error("Parse Hardware version success version1=%d version2=%d\n",_Version1,_Version2);
 
                 int v = (_Version1 >> 15) + (_Version2 >> 15);
                 if(v == 1) {
@@ -217,7 +212,7 @@ int Hardware::processHardwareMsg() {
                     }
                     _state = HARDWARE_RUNNING;
                 }else {
-                    printf("***ERROR*** Hardware,Maybe Hardware1 same as Hardware2\n");
+                    Logger::getInstance()->error("[Hardware] Maybe Hardware1 same as Hardware2");
                     _state = HARDWARE_ERROR;
                 }
             }
@@ -225,12 +220,28 @@ int Hardware::processHardwareMsg() {
         }
             break;
         case HARDWARE_RUNNING:
-            if(_serial1->available()&&_serial1->readline(buf,256) > 0) {
-                _cmdParser1->parseWithFire(buf);
-            }
-            if(_serial2->available()&&_serial2->readline(buf,256) > 0) {
-                _cmdParser2->parseWithFire(buf);
-            }
+			if(_serial1->isAlive()) {
+				if(_Version1 == 0) {
+					_Version1 = verifyFWVersion(_serial1,&_sendTimer1);
+				}else if(_serial1->available() > 0&&_serial1->readline(buf,256) > 0) {
+                	_cmdParser1->parseWithFire(buf);
+            	}
+			}else if(_sendTimer1.elapsed(5000)&&_serial1->begin(_B115200)) {
+				_Version1 = 0;
+				_cmdParser1->reset();
+			}
+
+			if(_serial2->isAlive()) {
+				if(_Version2 == 0) {
+					_Version2 = verifyFWVersion(_serial2,&_sendTimer2);
+				}else if(_serial2->available() > 0&&_serial2->readline(buf,256) > 0) {
+                	_cmdParser2->parseWithFire(buf);
+            	}
+			}else if(_sendTimer2.elapsed(5000)&&_serial2->begin(_B115200)) {
+				_Version2 = 0;
+				_cmdParser2->reset();
+			}
+
             flushSendList();
             break;
         case HARDWARE_CLOSING:
@@ -307,7 +318,7 @@ int Hardware::LaserBRead(int args,char (*argv)[MAX_CMD_ARGUMENT_LEN],void* user)
 int Hardware::GPSRead(int args,char (*argv)[MAX_CMD_ARGUMENT_LEN],void* user) {
     HWStatus* status = (HWStatus*)user;
     if(args == 1 && argv[0][0] == '$') {
-        printf("GPS DATA:%s\n",argv[0]);
+        Logger::getInstance()->info(2,"GPS DATA:%s",argv[0]);
         //status->setGPS(longitudedata,latitudedata,heightdata,speeddata,timedata);
     }
     status->setGPS(0.f,0.f,0.f,0.f);
@@ -327,7 +338,7 @@ int Hardware::IMURead(int args,char (*argv)[MAX_CMD_ARGUMENT_LEN],void* user) {
 
 int Hardware::LogRead(int args,char (*argv)[MAX_CMD_ARGUMENT_LEN],void* user) {
     if(args == 1) {
-        printf("***LOG*** Serial:%s\n",argv[0]);
+        Logger::getInstance()->info(2,"[LOGOUT] %s",argv[0]);
     }
     return 0;
 }

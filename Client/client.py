@@ -198,7 +198,7 @@ class PaintWindow(wx.Window):
 			self.Bind(wx.EVT_CHOICE,self.onStateChoice,self.listState)
 			self.Bind(wx.EVT_KEY_DOWN,self.onKeyDown,self)
 			self.Bind(wx.EVT_KEY_UP,self.onKeyUp,self)
-			self.client = BoatClient("192.168.1.103",6666,self)
+			self.client = BoatClient("192.168.1.108",6666,self)
 			self.control_list = []
 
 		def onSetControlLua(self,event):
