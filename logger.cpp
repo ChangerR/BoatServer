@@ -35,7 +35,7 @@ Logger::Logger(const char* filename) {
 }
 
 Logger::~Logger() {
-	if(_file != NULL) {
+	if(_file != NULL && _file != stdout) {
 		fflush(_file);
 		fclose(_file);
 	}
