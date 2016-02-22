@@ -1,7 +1,7 @@
 #! /bin/bash
 PATH=/sbin:/usr/sbin:/bin:/usr/bin:/usr/local/bin # modify if you need
 
-DAEMON_ARGS="-f /usr/local/boat/boat.config"               # path to your node.js server/app
+DAEMON_ARGS="-f /usr/local/boat/boat.config -l /var/log/boatserver.log"               # path to your node.js server/app
                                             # NB: don't use ~/ in path
 
 DESC="UnmannedBoat server"                  # whatever fancy description you like
