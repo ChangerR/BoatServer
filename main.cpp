@@ -208,7 +208,8 @@ int main(int args,char** argv) {
 		delete l_server;
 		delete l_pilot;
 		delete l_hardware;
-
+		
+		Logger::destroyInstance();
     }while(0);
 
     return 0;
