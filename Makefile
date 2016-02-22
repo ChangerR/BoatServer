@@ -25,6 +25,11 @@ $(LUAJITHEADER):
 AutoController.o:$(LUAJITHEADER) AutoController.cpp
 	g++ $(CFLAG) -o $@ AutoController.cpp
 
+AutoControllerMock.o:$(LUAJITLIB) AutoController-mock.cpp
+	g++ $(CFLAG) -o $@ AutoController-mock.cpp
+
+script_test.o:$(LUAJITHEADER)
+
 logger.o: logger.cpp 
 	g++ $(CFLAG) -o $@ logger.cpp
 	
@@ -39,6 +44,9 @@ TestHardware:TestHardware.o $(OBJS)
 
 TestMD5:TestMd5.o MD5.o
 	g++ -o $@ TestMd5.o MD5.o $(LKFLAG) $(LKLIBA)
+
+script_test:script_test.o logger.o AutoControllerMock.o
+	g++ -o $@ script_test.o logger.o AutoControllerMock.o $(LKFLAG) $(LKLIBA) -lluajit -ldl
 
 install:boat boat.config
 	install -d /usr/local/boat
@@ -63,5 +71,5 @@ uninstall:
 
 clean:
 	-rm *.o
-	-rm $(TARGET) $(LUAJITLIB) $(LUAJITHEADER)
+	-rm $(TARGET) $(LUAJITLIB) $(LUAJITHEADER) script_test
 	cd luajit&&make clean
