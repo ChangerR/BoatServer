@@ -65,7 +65,10 @@ class BoatClient:
 		#self.sock.bind(self.addr)
 		self.last = time.time()*1000.0
 		self.tasks = []
-		self.father = father;
+		self.father = father
+                self._thro = 0
+                self._yaw = 0
+                self._led = [0,0]
 
 	def handleMessage(self):
 		if self.queue.empty() == False :
@@ -103,20 +106,26 @@ class BoatClient:
 			task.processTask(self)
 
 	def thro(self,direction):
-		msg = "2:::{\"name\":\"thro\",\"args\":[" + str(direction) + "]}"
-		self.queue.put(msg)
+                if self._thro != direction:
+		    msg = "2:::{\"name\":\"thro\",\"args\":[" + str(direction) + "]}"
+		    self.queue.put(msg)
+                    self._thro = direction
 
 	def yaw(self,direction):
-		msg = "2:::{\"name\":\"yaw\",\"args\":[" + str(direction) + "]}"
-		self.queue.put(msg)
+                if self._yaw != direction:
+		    msg = "2:::{\"name\":\"yaw\",\"args\":[" + str(direction) + "]}"
+		    self.queue.put(msg)
+                    self._yaw = direction
 
 	def state(self,s):
 		msg = "2:::{\"name\":\"ControlState\",\"args\":[" + str(s) + "]}"
 		self.queue.put(msg)
 
 	def led(self,id,power):
-		msg = "2:::{\"name\":\"led\",\"args\":[" + str(id) + "," +  str(power) +"]}"
-		self.queue.put(msg)
+                if self._led[id] != power: 
+		    msg = "2:::{\"name\":\"led\",\"args\":[" + str(id) + "," +  str(power) +"]}"
+		    self.queue.put(msg)
+                    self._led[id] = power;
 
 	def send(self,msg):
 		self.queue.put(msg)
@@ -192,7 +201,7 @@ class PaintWindow(wx.Window):
 			self.laser1 = wx.TextCtrl(self.laserp,-1,'0',pos=(10,190),size=(50,30),style=wx.TE_READONLY|wx.TE_CENTRE)
 			self.laser2 = wx.TextCtrl(self.laserp,-1,'0',pos=(170,190),size=(50,30),style=wx.TE_READONLY|wx.TE_CENTRE)
 			image = wx.Image("boat.bmp",wx.BITMAP_TYPE_BMP)
-			wx.StaticBitmap(self.laserp,bitmap=image.ConvertToBitmap(),pos=(65,45))
+			wx.StaticBitmap(self.laserp,bitmap=image.ConvertToBitmap(),pos=(65,55))
 			self.Bind(wx.EVT_BUTTON,self.onRequestList,self.requestBtn)
 			self.Bind(wx.EVT_BUTTON,self.onSetControlLua,self.setLuaBtn)
 			self.Bind(wx.EVT_CHOICE,self.onStateChoice,self.listState)

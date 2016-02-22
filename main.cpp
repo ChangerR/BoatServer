@@ -209,7 +209,7 @@ int main(int args,char** argv) {
 		delete l_pilot;
 		delete l_hardware;
 		
-		Logger::destroyInstance();
+		Logger::destoryInstance();
     }while(0);
 
     return 0;
