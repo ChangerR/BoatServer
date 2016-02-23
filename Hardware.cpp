@@ -110,7 +110,7 @@ void HWStatus::setIMU(float _r,float _p,float _y) {
 }
 
 bool HWStatus::isAllUpdated() {
-    return update_flag == ALL_UPDATE;
+    return ((update_flag | GPS_UPDATE) == ALL_UPDATE);
 }
 
 void HWStatus::reset() {
