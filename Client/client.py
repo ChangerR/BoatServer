@@ -106,26 +106,28 @@ class BoatClient:
 			task.processTask(self)
 
 	def thro(self,direction):
-                if self._thro != direction:
-		    msg = "2:::{\"name\":\"thro\",\"args\":[" + str(direction) + "]}"
-		    self.queue.put(msg)
-                    self._thro = direction
+		if self._thro != direction:
+			msg = "2:::{\"name\":\"thro\",\"args\":[" + str(direction) + "]}"
+			self.queue.put(msg)
+			self._thro = direction
+
 
 	def yaw(self,direction):
-                if self._yaw != direction:
-		    msg = "2:::{\"name\":\"yaw\",\"args\":[" + str(direction) + "]}"
-		    self.queue.put(msg)
-                    self._yaw = direction
+		if self._yaw != direction:
+			msg = "2:::{\"name\":\"yaw\",\"args\":[" + str(direction) + "]}"
+			self.queue.put(msg)
+			self._yaw = direction
+
 
 	def state(self,s):
 		msg = "2:::{\"name\":\"ControlState\",\"args\":[" + str(s) + "]}"
 		self.queue.put(msg)
 
 	def led(self,id,power):
-                if self._led[id] != power: 
-		    msg = "2:::{\"name\":\"led\",\"args\":[" + str(id) + "," +  str(power) +"]}"
-		    self.queue.put(msg)
-                    self._led[id] = power;
+		if self._led[id - 1] != power: 
+			msg = "2:::{\"name\":\"led\",\"args\":[" + str(id) + "," +  str(power) +"]}"
+			self.queue.put(msg)
+			self._led[id - 1] = power;
 
 	def send(self,msg):
 		self.queue.put(msg)
@@ -207,7 +209,7 @@ class PaintWindow(wx.Window):
 			self.Bind(wx.EVT_CHOICE,self.onStateChoice,self.listState)
 			self.Bind(wx.EVT_KEY_DOWN,self.onKeyDown,self)
 			self.Bind(wx.EVT_KEY_UP,self.onKeyUp,self)
-			self.client = BoatClient("192.168.1.108",6666,self)
+			self.client = BoatClient("192.168.1.254",6666,self)
 			self.control_list = []
 
 		def onSetControlLua(self,event):

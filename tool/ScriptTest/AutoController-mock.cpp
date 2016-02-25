@@ -85,10 +85,10 @@ int AutoControllerMock::getStatus(lua_State* L) {
 
     lua_newtable(L);
 	
-    l_setfield(L,"laser1",1000);
-    l_setfield(L,"laser2",1000);
-    l_setfield(L,"laser3",1000);
-    l_setfield(L,"laser4",1000);
+    l_setfield(L,"laser1",1161);
+    l_setfield(L,"laser2",2095);
+    l_setfield(L,"laser3",1402);
+    l_setfield(L,"laser4",1877);
     l_setfield(L,"laser5",1000);
     l_setfield(L,"roll",1000);
     l_setfield(L,"pitch",1000);
