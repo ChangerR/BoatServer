@@ -18,6 +18,65 @@ inline unsigned short parseVersion(const char* version) {
     return (ver & 0x7f) << 8 | (ver2 & 0xff);
 }
 
+inline bool parseGPS(const char* buffer,float& _longitude,float& _latitude,float& _speed,char* _time) {
+	const char* p = buffer;
+	bool ret = false;
+	char value[64];
+    if(*p++  != '$')return ret;
+		
+	if(!strncmp(p,"GPRMC,",6)) {
+		char* v = (char*)_time + 6;
+		p += 6;
+		while(*p && *p != ','&& *p != '.')*v++ = *p++;
+		
+		*v = 0;
+
+		while(*p && *p != ',')p++;
+
+		if(*(++p) != 'A') {
+						*_time = 0;
+			return ret;
+		}else
+			ret = true;
+
+		p += 2;
+		v = value;
+		
+		while(*p && *p != ',')*v++ = *p++;
+		*v = 0;
+
+		_longitude = parse_float(value) / 100;
+
+		if(*(p + 1) != 'N')
+			_longitude = -_longitude;				
+
+		p += 3;
+		
+		v = value;
+		while(*p && *p != ',')*v++ = *p++;
+		*v = 0;
+
+		_latitude = parse_float(value) / 100;
+		if( *(p + 1) != 'E')
+			_latitude = -_latitude;
+		
+		p += 3;
+		
+		v = value;
+		while(*p && *p != ',')*v++ = *p++;
+		*v = 0;
+		_speed = parse_float(value) / 1.852;
+
+		p++;
+		while(*p&&*p != ',')*v++ = *p++;
+		p++;
+
+		v = _time;
+		while(*p && *p != ',')*v++ = *p++;
+	}
+	return ret;
+}
+
 void HWStatus::setLaserA(int l1,int l2) {
     laser1 = l2;
     laser2 = l1;
@@ -31,11 +90,15 @@ void HWStatus::setLaserB(int l3,int l4,int l5) {
     update_flag |= LASERB_UPDATE;
 }
 
-void HWStatus::setGPS(float _longitude,float _latitude,float _s,float _t) {
-    longitude = _longitude;
-    latitude = _latitude;
-    speed = _s;
-    time = _t;
+void HWStatus::setGPS(const char* buffer) {
+	bool ret = parseGPS(buffer,longitude,latitude,speed,time);
+	if(ret != true) {
+		time[0] = '0';
+		time[1] = 0;
+		longitude = 0.f;
+		latitude = 0.f;
+		speed = 0.f;
+	}
     update_flag |= GPS_UPDATE;
 }
 
@@ -47,7 +110,7 @@ void HWStatus::setIMU(float _r,float _p,float _y) {
 }
 
 bool HWStatus::isAllUpdated() {
-    return update_flag == ALL_UPDATE;
+    return ((update_flag | GPS_UPDATE) == ALL_UPDATE);
 }
 
 void HWStatus::reset() {
@@ -63,7 +126,7 @@ void HWStatus::copyStatus(Status* s) {
     s->yaw = yaw;
     s->longitude = longitude;s->latitude = latitude;
     s->speed = speed;
-    s->time = time;
+	strcpy(s->time,time);
     s->isUpdated = true;
 }
 
@@ -319,9 +382,8 @@ int Hardware::GPSRead(int args,char (*argv)[MAX_CMD_ARGUMENT_LEN],void* user) {
     HWStatus* status = (HWStatus*)user;
     if(args == 1 && argv[0][0] == '$') {
         Logger::getInstance()->info(2,"GPS DATA:%s",argv[0]);
-        //status->setGPS(longitudedata,latitudedata,heightdata,speeddata,timedata);
+        status->setGPS(argv[0]);
     }
-    status->setGPS(0.f,0.f,0.f,0.f);
     return 0;
 }
 

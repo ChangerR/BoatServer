@@ -6,6 +6,7 @@
 #include <string>
 #include <pthread.h>
 #include "Timer.h"
+#include <string.h>
 
 #define LASERA_UPDATE 1
 #define LASERB_UPDATE 2
@@ -20,7 +21,8 @@ public:
         laser4 = laser5 = 0;
         roll = pitch = yaw = 0.f;
         longitude = latitude = 0.f;
-        speed = time = 0.f;
+        speed = 0.f;
+		memset(time,0,32);
         update_flag = 0;
     }
     virtual ~HWStatus(){}
@@ -29,7 +31,7 @@ public:
 
     void setLaserB(int l3,int l4,int l5);
 
-    void setGPS(float _longitude,float _latitude,float _s,float _t);
+    void setGPS(const char* buffer);
 
     void setIMU(float _r,float _p,float _y);
 
@@ -44,7 +46,8 @@ public:
             laser4 = laser5 = 0;
             roll = pitch = yaw = 0.f;
             longitude = latitude = 0.f;
-            speed = time = 0.f;
+            speed = 0.f;
+			memset(time,0,32);
         }
         virtual ~Status(){}
 
@@ -52,7 +55,8 @@ public:
         int laser4,laser5;
         float roll,pitch,yaw;
         float longitude,latitude;
-        float speed,time;
+        float speed;
+		char time[32];
         Timer timer;
         bool isUpdated;
     };
@@ -63,7 +67,8 @@ public:
     int laser4,laser5;
     float roll,pitch,yaw;
     float longitude,latitude;
-    float height,speed,time;
+    float speed;
+	char time[32];
     unsigned int update_flag;
 };
 
