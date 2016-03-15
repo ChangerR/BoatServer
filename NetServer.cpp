@@ -69,7 +69,7 @@ bool NetServer::init() {
 void NetServer::closeServer() {
     if(_running) {
         _running = false;
-        for(std::map<unsigned long,Client*>::iterator it = _clients.begin(); it != _clients.end();) {
+        for(std::map<int,Client*>::iterator it = _clients.begin(); it != _clients.end();) {
             delete it->second;
             _clients.erase(it++);
         }
@@ -77,37 +77,38 @@ void NetServer::closeServer() {
     }
 }
 
-NetServer::Client* NetServer::findClient(struct sockaddr_in& c) {
-    std::map<unsigned long,Client*>::iterator it = _clients.find(c.sin_addr.s_addr);
+NetServer::Client* NetServer::addClient(struct sockaddr_in& c) {
+	 Client* nClient = new Client(c);
 
-    if(it == _clients.end()) {
-        Client* nClient = new Client(c);
-        _clients.insert(std::make_pair(c.sin_addr.s_addr,nClient));
-        return nClient;
-    }
+	 _clients.insert(std::make_pair(c.sin_addr.s_addr,nClient));
 
-    return it->second;
+     return nClient;
 }
 
-NetServer::Client* NetServer::findClinet(int uid) {
+NetServer::Client* NetServer::findClient(int uid) {
     Client* c = NULL;
+	std::map<int,Client*>::iterator it = _clients.find(uid);
+	   
+	if(it != _clients.end()) {
+		c = it->second;	
+	}
 
-    for(std::map<unsigned long,Client*>::iterator it = _clients.begin(); it != _clients.end();++it) {
-        if(it->second->_uid == uid) {
-            c = it->second;
-            break;
-        }
-    }
-    return c;
+	return c;
 }
 
 void NetServer::sendMessageToClient(int id,const char* buf,int len) {
-    for(std::map<unsigned long,Client*>::iterator it = _clients.begin(); it != _clients.end();++it) {
-        if(id == -1||id == it->second->_uid) {
-            sendto(_serverSocket,buf,len,0,(struct sockaddr*)&(it->second->_clientaddr),sizeof(struct sockaddr_in));
-        }
-        if(id == it->second->_uid)break;
-    }
+
+	if(id == -1) {
+		for(std::map<int,Client*>::iterator it = _clients.begin(); it != _clients.end();++it) {
+	    	sendto(_serverSocket,buf,len,0,(struct sockaddr*)&(it->second->_clientaddr),sizeof(struct sockaddr_in));
+	    }
+	}else{
+		Client* c = findClient(id);
+		if(c != NULL){
+			sendto(_serverSocket,buf,len,0,(struct sockaddr*)&(c->_clientaddr),sizeof(struct sockaddr_in));
+		}
+	}
+
 }
 
 void NetServer::sendControlFiles(int id) {
@@ -179,61 +180,76 @@ bool NetServer::handleServerMessage() {
         recv_len = recvfrom(_serverSocket,_buffer,NETSERVER_BUFFER_LEN,MSG_DONTWAIT,
             (struct sockaddr*)&clientaddr,&addr_len);
 
-        if(recv_len > 3 && _buffer[1] == ':' && _buffer[2] == ':' && _buffer[3] == ':') {
+        if(recv_len > 7 && _buffer[1] == ':' && _buffer[2] == ':' && _buffer[3] == ':') {
+
             _buffer[recv_len] = 0;
-            switch (_buffer[0]) {
-                case '2':
-                    {
-                        Client* c = findClient(clientaddr);
-                        Logger::getInstance()->info(1,"[NetServer] Recvive:%s\n",_buffer + 4);
-						if(_pilot)
-							_pilot->pushControl(c->_uid,_buffer + 4);
-                        c->_time = 60;
-                    }
-                    break;
-                case '1':
-                    {
-                        Client* c = findClient(clientaddr);
-                        c->_time = 60;
-                        //Logger::getInstance()->error("Reset client uid=%d\n",c->_uid);
-                    }
-                    break;
-                case '3':
-                    {
-                        Client* c = findClient(clientaddr);
-                        c->_time = 60;
-                        if(!strcmp("listcontrolfiles",_buffer + 4)) {
-                            sendControlFiles(c->_uid);
-                        }
-                    }
-                    break;
-                case '4':
-                    {
-                        if(findControlFileInList(_buffer + 4) == true) {
-                            std::string filename = _filepath + "/" + (_buffer + 4);
-                            _pilot->setAutoControlScript(filename.c_str());
-                            Logger::getInstance()->info(5,"[NetServer] Set autoControl script %s\n",filename.c_str());
-                        }
-                    }
-                    break;
-				case 'f':
-					{
-						Client* c = findClient(clientaddr);
-                        c->_time = 60;
-						_fileTransfer->pushPacket(c->_uid,_buffer + 4,recv_len - 4);
-					}
-                    break;
-                default:
-                    Logger::getInstance()->error("[NetServer] We do not support this cmd:%s\n",_buffer);
-                    break;
-            }
+			id = *(int*)(_buffer + 4);
+			Client* c = findClient(id);
+			
+			do {	
+				if(c == NULL && _buffer[0] != '0') {
+					sendto(_serverSocket,"e:::",4,0,(struct sockaddr*)&clientaddr,sizeof(struct sockaddr_in));	
+					break;
+				}
+	
+	            switch (_buffer[0]) {
+					case '0':
+						{
+							c = addClient(clientaddr);
+							sprintf(_buffer,"0:::%d",c->_uid);
+							sendto(_serverSocket,_buffer,strlen(_buffer),0,(struct sockaddr*)&clientaddr,sizeof(struct sockaddr_in));
+						}
+						break;
+	                case '2':
+	                    {
+	                        Logger::getInstance()->info(1,"[NetServer] Recvive:%s\n",_buffer + 8);
+							if(_pilot)
+								_pilot->pushControl(c->_uid,_buffer + 8);
+	                        c->_time = 60;
+	                    }
+	                    break;
+	                case '1':
+	                    {
+	                        c->_time = 60;
+	                        //Logger::getInstance()->error("Reset client uid=%d\n",c->_uid);
+	                    }
+	                    break;
+	                case '3':
+	                    {
+	                        c->_time = 60;
+	                        if(!strcmp("listcontrolfiles",_buffer + 8)) {
+	                            sendControlFiles(c->_uid);
+	                        }
+	                    }
+	                    break;
+	                case '4':
+	                    {
+	                        if(findControlFileInList(_buffer + 8) == true) {
+	                            std::string filename = _filepath + "/" + (_buffer + 8);
+	                            _pilot->setAutoControlScript(filename.c_str());
+	                            Logger::getInstance()->info(5,"[NetServer] Set autoControl script %s\n",filename.c_str());
+	                        }
+	                    }
+	                    break;
+					case 'f':
+						{
+	                        c->_time = 60;
+							_fileTransfer->pushPacket(c->_uid,_buffer + 8,recv_len - 8);
+						}
+	                    break;
+	                default:
+	                    Logger::getInstance()->error("[NetServer] We do not support this cmd:%s\n",_buffer);
+	                    break;
+	            }
+			}while(0);
+
         } else {
             Logger::getInstance()->error("[NetServer] Recv UNKOWN Message Format\n");
         }
     }
 
     if(_timer.elapsed(10000)) {
-        for(std::map<unsigned long,Client*>::iterator it = _clients.begin(); it != _clients.end();) {
+        for(std::map<int,Client*>::iterator it = _clients.begin(); it != _clients.end();) {
             it->second->_time -= 10;
             if(it->second->_time <= 0) {
                 Client* c = it->second;

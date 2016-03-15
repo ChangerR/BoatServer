@@ -32,8 +32,8 @@ public:
 	static void NetFileRecv(const char* filename,void* user);
 
 private:
-    Client* findClient(struct sockaddr_in& c);
-    Client* findClinet(int uid);
+    Client* findClient(int uid);
+	Client* addClient(struct sockaddr_in& c); 
 
     void sendControlFiles(int id);
     void listControlFiles();
@@ -45,7 +45,7 @@ private:
     sockaddr_in _addr;
     bool _running;
     char* _buffer;
-    std::map<unsigned long,Client*> _clients;
+    std::map<int,Client*> _clients;
     Timer _timer;
 	UDPFileTransfer* _fileTransfer;
     std::string _filepath;
