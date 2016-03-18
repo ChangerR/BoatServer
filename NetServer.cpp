@@ -80,7 +80,7 @@ void NetServer::closeServer() {
 NetServer::Client* NetServer::addClient(struct sockaddr_in& c) {
 	 Client* nClient = new Client(c);
 
-	 _clients.insert(std::make_pair(c.sin_addr.s_addr,nClient));
+	 _clients.insert(std::make_pair(nClient->_uid,nClient));
 
      return nClient;
 }
@@ -188,7 +188,7 @@ bool NetServer::handleServerMessage() {
 			
 			do {	
 				if(c == NULL && _buffer[0] != '0') {
-					sendto(_serverSocket,"e:::",4,0,(struct sockaddr*)&clientaddr,sizeof(struct sockaddr_in));	
+					sendto(_serverSocket,"{\"name\":\"error\",\"args\":0}",strlen("{\"name\":\"error\",\"args\":0}"),0,(struct sockaddr*)&clientaddr,sizeof(struct sockaddr_in));	
 					break;
 				}
 	
@@ -196,13 +196,13 @@ bool NetServer::handleServerMessage() {
 					case '0':
 						{
 							c = addClient(clientaddr);
-							sprintf(_buffer,"0:::%d",c->_uid);
+							sprintf(_buffer,"{\"name\":\"login\",\"args\":%d}",c->_uid);
 							sendto(_serverSocket,_buffer,strlen(_buffer),0,(struct sockaddr*)&clientaddr,sizeof(struct sockaddr_in));
 						}
 						break;
 	                case '2':
 	                    {
-	                        Logger::getInstance()->info(1,"[NetServer] Recvive:%s\n",_buffer + 8);
+	                        Logger::getInstance()->info(1,"[NetServer] Recvive:%s",_buffer + 8);
 							if(_pilot)
 								_pilot->pushControl(c->_uid,_buffer + 8);
 	                        c->_time = 60;

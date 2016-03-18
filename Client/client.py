@@ -69,11 +69,23 @@ class BoatClient:
                 self._thro = 0
                 self._yaw = 0
                 self._led = [0,0]
+                self._id = -1
 
 	def handleMessage(self):
 		if self.queue.empty() == False :
-			msg = self.queue.get(False)
-			self.sock.sendto(msg,self.addr)
+                        if self._id == -1 :
+                            self.sock.sendto(struct.pack('4si','0:::',0),self.addr)
+                            self._id = 0
+                        elif self._id >= 1000:
+			    msg = self.queue.get(False)
+                            if len(msg) == 4 :
+                                self.sock.sendto(struct.pack('4si','0:::',self._id),self.addr)
+                            else:
+                                formats = '4si' + str(len(msg) - 4) + 's'
+                                #print formats
+                                m = struct.pack(formats,msg[0:4],self._id,msg[4:])
+                                #print m
+                                self.sock.sendto(m,self.addr)
 
 		rlist,wlist,xlist = select.select([self.sock],[],[],0)
 		for s in rlist:
@@ -97,9 +109,14 @@ class BoatClient:
 			elif rdata['name'] == 'log':
 				#print rdata
 				self.father.appendLog(rdata['args'][0])
+                        elif rdata['name'] == 'error':
+                                if rdata['args'] == 0:
+                                    self._id = -1;
+                        elif rdata['name'] == 'login':
+                                self._id = int(rdata['args'])
 
 		if time.time()*1000.0 - self.last > 45000.0:
-			self.sock.sendto("1:::",self.addr)
+                        self.queue.put("1:::")
 			self.last = time.time()*1000.0
 
 		for task in self.tasks:
@@ -207,7 +224,7 @@ class PaintWindow(wx.Window):
 			self.Bind(wx.EVT_CHOICE,self.onStateChoice,self.listState)
 			self.Bind(wx.EVT_KEY_DOWN,self.onKeyDown,self)
 			self.Bind(wx.EVT_KEY_UP,self.onKeyUp,self)
-			self.client = BoatClient("192.168.1.108",6666,self)
+			self.client = BoatClient("localhost",6666,self)
 			self.control_list = []
 
 		def onSetControlLua(self,event):

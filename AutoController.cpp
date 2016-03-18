@@ -44,7 +44,7 @@ bool AutoController::init(const char* script,Pilot* pilot) {
         luaL_openlib(_L,"controller",_controller,0);
 
         if(luaL_dofile(_L,script)) {
-			Logger::getInstance()->error("Compile Script Error:%s\n",lua_tostring(_L,-1));
+			Logger::getInstance()->error("Compile Script Error:%s",lua_tostring(_L,-1));
             lua_pop(_L,1);
             lua_close(_L);
             _L = NULL;
